@@ -1,4 +1,4 @@
-# Amazon S3 — job/booking images (private; presigned URLs) and SPA static assets (CloudFront OAC).
+# Amazon S3 — job/booking images (private; presigned PUT to bucket, presigned GET via CloudFront) and SPA (OAC).
 
 resource "aws_s3_bucket" "frontend" {
   bucket = "${var.name_prefix}-frontend-${var.environment}-${substr(md5(data.aws_caller_identity.current.account_id), 0, 8)}"
@@ -24,6 +24,18 @@ resource "aws_s3_bucket_public_access_block" "job_images" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_cors_configuration" "job_images" {
+  bucket = aws_s3_bucket.job_images.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD", "PUT"]
+    allowed_origins = [trimsuffix(trimspace(var.frontend_public_url), "/")]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
 }
 
 resource "aws_s3_bucket_policy" "frontend" {

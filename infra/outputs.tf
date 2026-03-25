@@ -13,6 +13,11 @@ output "api_cloudfront_url" {
   value       = "https://${local.api_host}"
 }
 
+output "images_cloudfront_url" {
+  description = "HTTPS URL for job/booking images (custom domain from images_public_url)"
+  value       = "https://${local.images_host}"
+}
+
 output "vite_api_url" {
   description = "Set VITE_API_URL for production builds (matches api_cloudfront_url)"
   value       = "https://${local.api_host}"

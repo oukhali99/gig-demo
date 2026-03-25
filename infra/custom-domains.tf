@@ -1,20 +1,21 @@
 locals {
   _f_in  = trimspace(var.frontend_public_url)
   _a_in  = trimspace(var.api_public_url)
+  _i_in  = trimspace(var.images_public_url)
   _f_nop = lower(trimsuffix(replace(replace(local._f_in, "https://", ""), "http://", ""), "/"))
   _a_nop = lower(trimsuffix(replace(replace(local._a_in, "https://", ""), "http://", ""), "/"))
+  _i_nop = lower(trimsuffix(replace(replace(local._i_in, "https://", ""), "http://", ""), "/"))
 
   frontend_host = local._f_nop
   api_host      = local._a_nop
-
-  cert_domain_names = distinct(compact([local.frontend_host, local.api_host]))
+  images_host   = local._i_nop
 }
 
 resource "aws_acm_certificate" "cloudfront" {
   provider = aws.us_east_1
 
-  domain_name               = local.cert_domain_names[0]
-  subject_alternative_names = length(local.cert_domain_names) > 1 ? slice(local.cert_domain_names, 1, length(local.cert_domain_names)) : []
+  domain_name               = local.frontend_host
+  subject_alternative_names = sort([local.api_host, local.images_host])
   validation_method         = "DNS"
 
   lifecycle {
@@ -90,6 +91,30 @@ resource "aws_route53_record" "api_alias_ipv6" {
   alias {
     name                   = aws_cloudfront_distribution.api.domain_name
     zone_id                = aws_cloudfront_distribution.api.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "images_alias" {
+  zone_id = var.route53_zone_id
+  name    = local.images_host
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.job_images.domain_name
+    zone_id                = aws_cloudfront_distribution.job_images.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "images_alias_ipv6" {
+  zone_id = var.route53_zone_id
+  name    = local.images_host
+  type    = "AAAA"
+
+  alias {
+    name                   = aws_cloudfront_distribution.job_images.domain_name
+    zone_id                = aws_cloudfront_distribution.job_images.hosted_zone_id
     evaluate_target_health = false
   }
 }

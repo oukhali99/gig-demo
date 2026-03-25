@@ -25,12 +25,16 @@ export function getPresignedPutUrl(key: string, contentType: string): Promise<st
   );
 }
 
-export function getPresignedGetUrl(key: string): Promise<string> {
-  return getSignedUrl(
+export async function getPresignedGetUrl(key: string): Promise<string> {
+  const s3Url = await getSignedUrl(
     s3,
     new GetObjectCommand({ Bucket: BUCKET, Key: key }),
     { expiresIn: PRESIGN_GET_EXPIRES }
   );
+  const cdnBase = process.env.IMAGES_CDN_BASE_URL?.replace(/\/$/, '');
+  if (!cdnBase) return s3Url;
+  const u = new URL(s3Url);
+  return `${cdnBase}${u.pathname}${u.search}`;
 }
 
 export async function objectExists(key: string): Promise<boolean> {

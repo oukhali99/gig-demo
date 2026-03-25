@@ -71,6 +71,27 @@ variable "api_public_url" {
   }
 }
 
+variable "images_public_url" {
+  description = "HTTPS URL for job/booking images via CloudFront (e.g. https://images.example.com). Presigned GET URLs are rewritten to this host; uploads still use presigned S3 PUT."
+  type        = string
+  validation {
+    condition = trimspace(var.images_public_url) != "" && trimsuffix(
+      replace(replace(lower(trimspace(var.frontend_public_url)), "https://", ""), "http://", ""),
+      "/",
+      ) != trimsuffix(
+      replace(replace(lower(trimspace(var.images_public_url)), "https://", ""), "http://", ""),
+      "/",
+      ) && trimsuffix(
+      replace(replace(lower(trimspace(var.api_public_url)), "https://", ""), "http://", ""),
+      "/",
+      ) != trimsuffix(
+      replace(replace(lower(trimspace(var.images_public_url)), "https://", ""), "http://", ""),
+      "/",
+    )
+    error_message = "images_public_url must be non-empty and must not match the frontend or API hostname."
+  }
+}
+
 variable "route53_zone_id" {
   description = "Route 53 hosted zone ID for ACM DNS validation and A/AAAA aliases (e.g. Z0123456789)."
   type        = string

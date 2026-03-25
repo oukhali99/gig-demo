@@ -23,6 +23,7 @@ resource "aws_lambda_function" "api" {
       NOTIFICATIONS_TABLE_NAME = aws_dynamodb_table.notifications.name
       REVIEWS_TABLE_NAME       = aws_dynamodb_table.reviews.name
       BUCKET_NAME              = aws_s3_bucket.job_images.bucket
+      IMAGES_CDN_BASE_URL      = "https://${local.images_host}"
       USER_POOL_ID             = aws_cognito_user_pool.main.id
       CLIENT_ID                = aws_cognito_user_pool_client.main.id
       ENVIRONMENT              = var.environment

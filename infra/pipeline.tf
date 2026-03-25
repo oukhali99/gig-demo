@@ -110,6 +110,10 @@ resource "aws_codebuild_project" "deploy" {
       value = var.api_public_url
     }
     environment_variable {
+      name  = "TF_VAR_images_public_url"
+      value = var.images_public_url
+    }
+    environment_variable {
       name  = "TF_VAR_route53_zone_id"
       value = var.route53_zone_id
     }

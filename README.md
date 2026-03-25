@@ -61,7 +61,7 @@ yarn tf:init:dev   # dev backend init
 yarn deploy:dev    # dev apply + frontend publish
 ```
 
-This builds the Lambda bundle, runs `terraform apply`, sets `app/frontend/.env` `VITE_API_URL` to the **API** URL (`terraform output -raw vite_api_url`), builds the SPA, syncs it to S3, and invalidates the **frontend** CloudFront distribution. Open `terraform output -raw frontend_cloudfront_url` for the site; the API is at `terraform output -raw api_cloudfront_url`.
+This builds the Lambda bundle, runs `terraform apply`, sets `app/frontend/.env` `VITE_API_URL` to the **API** URL (`terraform output -raw vite_api_url`), builds the SPA, syncs it to S3, and invalidates the **frontend** CloudFront distribution. Set **`images_public_url`** in tfvars to a third hostname (e.g. `https://images.example.com`) in the same Route 53 zone; image **GET** URLs use that CloudFront distribution (CORS for the SPA), while **PUT** uploads still use presigned S3 URLs. Outputs: `frontend_cloudfront_url`, `api_cloudfront_url`, `images_cloudfront_url`.
 
 ### CodePipeline
 
@@ -76,7 +76,7 @@ CodeBuild receives backend and module inputs from environment variables (wired i
 | `TF_VAR_terraform_state_bucket`, `TF_VAR_terraform_state_key`, `TF_VAR_terraform_lock_table` | State bucket/key + lock table name (must match `TF_LOCK_TABLE`) |
 | `TF_VAR_aws_region` | AWS provider region for resources |
 | `TF_VAR_environment` | `prod` or `dev` |
-| `TF_VAR_frontend_public_url`, `TF_VAR_api_public_url`, `TF_VAR_route53_zone_id` | URLs and hosted zone |
+| `TF_VAR_frontend_public_url`, `TF_VAR_api_public_url`, `TF_VAR_images_public_url`, `TF_VAR_route53_zone_id` | URLs and hosted zone |
 | `TF_VAR_github_connection_arn`, `TF_VAR_github_repository_id`, `TF_VAR_github_branch` | Pipeline source |
 
 Local deploys still use `yarn deploy` / `yarn deploy:dev` with your gitignored `*.hcl` and `terraform.*.tfvars` files.
