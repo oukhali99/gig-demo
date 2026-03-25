@@ -1,0 +1,36 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - set -euo pipefail
+      - TF_VERSION=1.9.8
+      - curl -fsSL "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip" -o /tmp/tf.zip
+      - unzip -o /tmp/tf.zip -d /usr/local/bin
+      - terraform version
+      - npm install -g yarn
+
+  pre_build:
+    commands:
+      - set -euo pipefail
+      - cd "$CODEBUILD_SRC_DIR"
+      - yarn install
+
+  build:
+    commands:
+      - set -euo pipefail
+      - cd "$CODEBUILD_SRC_DIR"
+      - yarn workspace gig-api build:lambda
+      - cd infra
+      - terraform init -input=false -no-color -backend-config="bucket=$TF_STATE_BUCKET" -backend-config="key=$TF_STATE_KEY" -backend-config="region=$AWS_DEFAULT_REGION" -backend-config="dynamodb_table=$TF_LOCK_TABLE" -backend-config="encrypt=true"
+      - terraform apply -auto-approve -input=false -no-color
+      - export VITE_API_URL="$(terraform output -raw vite_api_url)"
+      - export BUCKET="$(terraform output -raw frontend_bucket_name)"
+      - export DIST_ID="$(terraform output -raw frontend_cloudfront_distribution_id)"
+      - cd "$CODEBUILD_SRC_DIR"
+      - yarn --cwd app/frontend install
+      - yarn --cwd app/frontend build
+      - aws s3 sync app/frontend/dist "s3://${BUCKET}/" --delete
+      - aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*" >/dev/null

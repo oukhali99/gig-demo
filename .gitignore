@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+*.zip
+.terraform/
+infra/terraform-backend.hcl
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+app/frontend/.env
+.env
+*.log

@@ -1,0 +1,17 @@
+# Copy to terraform.tfvars (do not commit secrets). Required for every apply.
+#
+# Hostnames must sit in the hosted zone below (or validation/aliases will fail).
+#
+# Create this bucket in S3 first (enable versioning recommended). Use the same
+# name in infra/terraform-backend.hcl when running terraform init.
+
+terraform_state_bucket = "my-company-terraform-state"
+
+frontend_public_url = "https://app.example.com"
+api_public_url      = "https://api.example.com"
+route53_zone_id     = "Z0123456789ABCDEFGHIJ"
+
+# CodeStar connection to GitHub (Developer Tools > Connections); approve in AWS Console.
+github_connection_arn  = "arn:aws:codestar-connections:us-east-1:123456789012:connection/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+github_repository_id   = "myorg/gig-demo"
+github_branch          = "main"

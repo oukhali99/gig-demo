@@ -1,0 +1,12 @@
+{
+  "name": "gig-demo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "yarn workspace gig-api build",
+    "deploy": "yarn workspace gig-api build:lambda && cd infra && terraform apply -auto-approve && bash ../scripts/update-frontend-env.sh && bash ../scripts/publish-frontend.sh",
+    "destroy": "cd infra && terraform destroy -auto-approve",
+    "deploy:dev": "yarn workspace gig-api build:lambda && cd infra && terraform apply -auto-approve -var=environment=dev && bash ../scripts/update-frontend-env.sh && bash ../scripts/publish-frontend.sh"
+  },
+  "workspaces": ["app/api"]
+}
