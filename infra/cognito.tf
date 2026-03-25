@@ -1,4 +1,8 @@
 # Amazon Cognito — user pool and app client (JWT for API Gateway).
+#
+# Usernames are emails (username_attributes). Cognito does not filter profanity in
+# emails or standard attributes; password policy below is the only built-in content
+# rules. For stricter checks, add a pre sign-up Lambda trigger on the user pool.
 
 resource "aws_cognito_user_pool" "main" {
   name = "${var.name_prefix}-users-${var.environment}"

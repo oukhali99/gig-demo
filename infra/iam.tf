@@ -87,6 +87,22 @@ resource "aws_iam_role_policy" "api_lambda_rekognition" {
   })
 }
 
+resource "aws_iam_role_policy" "api_lambda_comprehend" {
+  name = "comprehend-toxicity"
+  role = aws_iam_role.api_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "comprehend:DetectToxicContent"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy" "api_lambda_cognito" {
   name = "cognito"
   role = aws_iam_role.api_lambda.id

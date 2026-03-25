@@ -4,6 +4,7 @@ import { devLog, json, badRequest, notFound, getCorrelationId, getSubFromEvent, 
 import * as repo from './repository.js';
 import * as events from './events.js';
 import * as images from '../shared/images.js';
+import * as textMod from '../shared/text-moderation.js';
 import type { CreateJobInput, UpdateJobInput, JobStatus } from './types.js';
 
 function getJobIdFromPath(event: APIGatewayProxyEventV2): string | null {
@@ -69,6 +70,15 @@ async function handleCreateJob(event: APIGatewayProxyEventV2): Promise<APIGatewa
     updatedAt: now,
   };
 
+  const textCheck = await textMod.moderateJobContent({
+    title: job.title,
+    description: job.description,
+    location: job.location,
+  });
+  if (!textCheck.allowed) {
+    return json(400, { code: 'MODERATION_REJECTED', message: textCheck.reason ?? 'Job text not allowed' });
+  }
+
   try {
     await repo.createJob(job);
   } catch (e: unknown) {
@@ -105,6 +115,17 @@ async function handleUpdateJob(event: APIGatewayProxyEventV2): Promise<APIGatewa
   }
   if (existing.clientId !== sub) {
     return json(403, { code: 'FORBIDDEN', message: 'You are not the owner of this job' });
+  }
+
+  const modFields: textMod.TextFieldToModerate[] = [];
+  if (typeof body.title === 'string') modFields.push({ field: 'title', text: body.title });
+  if (typeof body.description === 'string') modFields.push({ field: 'description', text: body.description });
+  if (typeof body.location === 'string') modFields.push({ field: 'location', text: body.location });
+  if (modFields.length > 0) {
+    const textCheck = await textMod.moderateTextFields(modFields);
+    if (!textCheck.allowed) {
+      return json(400, { code: 'MODERATION_REJECTED', message: textCheck.reason ?? 'Job text not allowed' });
+    }
   }
 
   const updatedAt = new Date().toISOString();
@@ -262,6 +283,15 @@ async function handlePublishJob(event: APIGatewayProxyEventV2): Promise<APIGatew
     return json(403, { code: 'FORBIDDEN', message: 'You are not the owner of this job' });
   }
 
+  const textCheck = await textMod.moderateJobContent({
+    title: existing.title,
+    description: existing.description,
+    location: existing.location,
+  });
+  if (!textCheck.allowed) {
+    return json(400, { code: 'MODERATION_REJECTED', message: textCheck.reason ?? 'Job text not allowed' });
+  }
+
   const updatedAt = new Date().toISOString();
   const updated = await repo.updateJobStatus(jobId, 'published', updatedAt);
   if (!updated) return notFound('Job not found');
@@ -290,6 +320,12 @@ async function handleCloseJob(event: APIGatewayProxyEventV2): Promise<APIGateway
 
   const body = parseBody<{ reason?: string }>(event);
   const reason = typeof body?.reason === 'string' ? body.reason.trim() : undefined;
+  if (reason) {
+    const reasonCheck = await textMod.moderateTextFields([{ field: 'reason', text: reason }]);
+    if (!reasonCheck.allowed) {
+      return json(400, { code: 'MODERATION_REJECTED', message: reasonCheck.reason ?? 'Close reason not allowed' });
+    }
+  }
   const updatedAt = new Date().toISOString();
   const updated = await repo.updateJobStatus(jobId, 'closed', updatedAt, reason);
   if (!updated) return notFound('Job not found');
