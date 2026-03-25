@@ -122,6 +122,10 @@ resource "aws_codebuild_project" "deploy" {
       value = var.terraform_state_key
     }
     environment_variable {
+      name  = "TF_VAR_terraform_lock_table"
+      value = var.terraform_lock_table
+    }
+    environment_variable {
       name  = "TF_VAR_github_connection_arn"
       value = var.github_connection_arn
     }

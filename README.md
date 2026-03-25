@@ -73,7 +73,7 @@ CodeBuild receives backend and module inputs from environment variables (wired i
 |----------|---------|
 | `TF_STATE_BUCKET`, `TF_STATE_KEY`, `TF_LOCK_TABLE` | S3 backend + DynamoDB lock |
 | `TF_BACKEND_REGION` | Region for the state bucket (and init); CodeBuild also sets `AWS_DEFAULT_REGION` |
-| `TF_VAR_terraform_state_bucket`, `TF_VAR_terraform_state_key` | Same as backend bucket/key (module inputs) |
+| `TF_VAR_terraform_state_bucket`, `TF_VAR_terraform_state_key`, `TF_VAR_terraform_lock_table` | State bucket/key + lock table name (must match `TF_LOCK_TABLE`) |
 | `TF_VAR_aws_region` | AWS provider region for resources |
 | `TF_VAR_environment` | `prod` or `dev` |
 | `TF_VAR_frontend_public_url`, `TF_VAR_api_public_url`, `TF_VAR_route53_zone_id` | URLs and hosted zone |
