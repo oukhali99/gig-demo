@@ -64,8 +64,8 @@ output "terraform_state_key" {
 }
 
 output "terraform_lock_table" {
-  description = "DynamoDB table used for Terraform state locking"
-  value       = aws_dynamodb_table.terraform_lock.name
+  description = "DynamoDB table used for Terraform state locking (pre-created; see scripts/bootstrap-terraform-state.sh)"
+  value       = var.terraform_lock_table
 }
 
 output "codepipeline_name" {

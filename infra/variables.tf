@@ -22,6 +22,15 @@ variable "terraform_state_key" {
   }
 }
 
+variable "terraform_lock_table" {
+  description = "Existing DynamoDB table name for S3 state locking (hash key LockID, string). Create with scripts/bootstrap-terraform-state.sh; must match backend dynamodb_table=."
+  type        = string
+  validation {
+    condition     = trimspace(var.terraform_lock_table) != ""
+    error_message = "terraform_lock_table must be non-empty."
+  }
+}
+
 variable "aws_region" {
   description = "AWS region for resources"
   type        = string

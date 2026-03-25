@@ -90,7 +90,7 @@ resource "aws_codebuild_project" "deploy" {
     }
     environment_variable {
       name  = "TF_LOCK_TABLE"
-      value = aws_dynamodb_table.terraform_lock.name
+      value = var.terraform_lock_table
     }
     environment_variable {
       name  = "TF_VAR_aws_region"

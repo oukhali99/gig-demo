@@ -14,15 +14,26 @@ The stack is entirely managed AWS services (no servers to run). Splitting into m
 │   └── frontend/      # Vite SPA — install deps in this directory for local dev
 ├── docs/              # Product, architecture, contracts, diagrams, ADRs
 ├── buildspec.yml      # AWS CodeBuild: Lambda build, terraform apply, SPA publish
-├── infra/             # Terraform (includes remote-state, pipeline, cloudfront, …)
-├── scripts/           # update-frontend-env.sh, publish-frontend.sh
-├── package.json       # Yarn workspace: app/api
+├── infra/             # Terraform (pipeline, cloudfront, …)
+├── scripts/           # bootstrap-terraform-state.sh, tf-init-ci.sh, frontend publish
+├── package.json       # Yarn workspaces: app/api, app/frontend
 └── yarn.lock
 ```
 
 ## Prerequisites
 
 Node.js 20+, Yarn, Terraform 1.0+, AWS CLI configured.
+
+## Terraform state backend (first time)
+
+Create the S3 bucket and DynamoDB lock table **before** the first `terraform init` with a remote backend:
+
+```bash
+./scripts/bootstrap-terraform-state.sh my-company-terraform-state us-east-1 gig-demo-tf-lock-prod
+# or: yarn tf:bootstrap -- my-company-terraform-state us-east-1 gig-demo-tf-lock-prod
+```
+
+Use the same bucket, region, and `dynamodb_table` name in `infra/terraform-backend.*.hcl` and set `terraform_state_bucket`, `terraform_state_key`, and `terraform_lock_table` in your `terraform.*.tfvars`. For dev, reuse the bucket with a different state key and lock table (see `*.example` files).
 
 ## Deploy
 
@@ -40,7 +51,7 @@ Examples are provided for each:
 
 Copy each `*.example` to the matching path without `.example` (those four files are **gitignored** so you don’t commit account-specific values). If they were ever committed, run `git rm --cached` on them once.
 
-Set `terraform_state_bucket` + `terraform_state_key` in each tfvars file, and keep backend `key` aligned with the same environment's tfvars. The S3 bucket is pre-existing; DynamoDB lock table is created by Terraform.
+Set `terraform_state_bucket`, `terraform_state_key`, and `terraform_lock_table` in each tfvars file, and keep backend `key` / `dynamodb_table` aligned with the same environment's tfvars. Both the bucket and lock table are created outside Terraform (see **Terraform state backend** above).
 
 ```bash
 yarn install
@@ -71,7 +82,7 @@ CodeBuild receives backend and module inputs from environment variables (wired i
 Local deploys still use `yarn deploy` / `yarn deploy:dev` with your gitignored `*.hcl` and `terraform.*.tfvars` files.
 
 ```bash
-cd app/frontend && yarn install && yarn dev
+yarn install && yarn workspace frontend dev
 ```
 
 **Destroy**: `yarn destroy` (prod) or `yarn destroy:dev` (dev)
@@ -95,4 +106,4 @@ HTTP API v2 with JWT on protected routes: `/auth/*`, `/users/{id}`, `/jobs/*`, `
 
 ## Package manager
 
-Use **Yarn** at the repo root and in `app/frontend` per project conventions.
+Use **Yarn** at the repo root; workspaces include `app/api` and `app/frontend`.
