@@ -1,0 +1,29 @@
+---
+description: CI Terraform init/apply env vars, CodeBuild wiring, tf-init-ci.sh
+globs: "scripts/tf-init-ci.sh, infra/pipeline.tf, infra/variables.tf, buildspec.yml, package.json"
+alwaysApply: false
+---
+
+# Terraform CI (CodeBuild) and `tf-init-ci.sh`
+
+## Two different env mechanisms
+
+1. **`terraform init` (remote backend)** — `scripts/tf-init-ci.sh` reads **non-Terraform** env vars and passes them as `-backend-config=...`:
+   - `TF_STATE_BUCKET`, `TF_STATE_KEY`, `TF_LOCK_TABLE`, `TF_BACKEND_REGION` (or `AWS_DEFAULT_REGION` / `AWS_REGION`)
+
+2. **`terraform apply`** — root module variables come from **`TF_VAR_<variable_name>`** (same spelling as in `variables.tf`, including underscores). No `-var-file` in CI.
+
+## Do not forget `terraform_lock_table`
+
+That variable must appear **twice** in `infra/pipeline.tf` CodeBuild `environment_variable` blocks:
+
+- **`TF_LOCK_TABLE`** → value used only by **`tf-init-ci.sh`** for backend `dynamodb_table=`.
+- **`TF_VAR_terraform_lock_table`** → same table name for **`terraform apply`** (required root input).
+
+If you add one and omit the other, init can succeed while apply fails with *"No value for required variable terraform_lock_table"*.
+
+## Checklist when changing CI Terraform
+
+- Editing **`tf-init-ci.sh`**: keep backend env names aligned with **`pipeline.tf`** and document any new required env vars in **README** (CodeBuild table).
+- Adding a **required** variable in **`variables.tf`**: add matching **`TF_VAR_...`** to **`aws_codebuild_project.deploy`** in **`pipeline.tf`** unless it has a default and CI should use that default only.
+- **`yarn deploy:ci`** in **`package.json`** runs init then apply with no tfvars; all required inputs must reach apply via CodeBuild env.
