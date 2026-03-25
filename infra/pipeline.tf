@@ -76,17 +76,27 @@ resource "aws_codebuild_project" "deploy" {
     image_pull_credentials_type = "CODEBUILD"
 
     environment_variable {
+      name  = "TF_BACKEND_REGION"
+      value = var.aws_region
+    }
+
+    environment_variable {
       name  = "TF_STATE_BUCKET"
       value = var.terraform_state_bucket
     }
     environment_variable {
       name  = "TF_STATE_KEY"
-      value = local.terraform_state_key
+      value = var.terraform_state_key
     }
     environment_variable {
       name  = "TF_LOCK_TABLE"
       value = aws_dynamodb_table.terraform_lock.name
     }
+    environment_variable {
+      name  = "TF_VAR_aws_region"
+      value = var.aws_region
+    }
+
     environment_variable {
       name  = "TF_VAR_environment"
       value = var.environment
@@ -106,6 +116,10 @@ resource "aws_codebuild_project" "deploy" {
     environment_variable {
       name  = "TF_VAR_terraform_state_bucket"
       value = var.terraform_state_bucket
+    }
+    environment_variable {
+      name  = "TF_VAR_terraform_state_key"
+      value = var.terraform_state_key
     }
     environment_variable {
       name  = "TF_VAR_github_connection_arn"

@@ -3,10 +3,15 @@ dist/
 build/
 *.zip
 .terraform/
-infra/terraform-backend.hcl
 *.tfstate
 *.tfstate.*
 .terraform.lock.hcl
 app/frontend/.env
 .env
 *.log
+
+# Local Terraform env config (examples *.example stay in git).
+infra/terraform.prod.tfvars
+infra/terraform.dev.tfvars
+infra/terraform-backend.prod.hcl
+infra/terraform-backend.dev.hcl

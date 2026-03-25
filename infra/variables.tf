@@ -13,6 +13,15 @@ variable "terraform_state_bucket" {
   }
 }
 
+variable "terraform_state_key" {
+  description = "S3 object key for this stack's state file (e.g. gig-demo/prod/terraform.tfstate). Must match backend.hcl key= and stay stable across applies."
+  type        = string
+  validation {
+    condition     = trimspace(var.terraform_state_key) != ""
+    error_message = "terraform_state_key must be non-empty."
+  }
+}
+
 variable "aws_region" {
   description = "AWS region for resources"
   type        = string

@@ -1,0 +1,6 @@
+# Copy values into terraform-backend.prod.hcl
+bucket         = "my-company-terraform-state"
+key            = "gig-demo/prod/terraform.tfstate"
+region         = "us-east-1"
+dynamodb_table = "gig-demo-tf-lock-prod"
+encrypt        = true

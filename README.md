@@ -26,29 +26,55 @@ Node.js 20+, Yarn, Terraform 1.0+, AWS CLI configured.
 
 ## Deploy
 
-Create `infra/terraform.tfvars` from `infra/terraform.tfvars.example` and set `frontend_public_url`, `api_public_url`, `route53_zone_id`, and the GitHub/CodeStar fields (`github_connection_arn`, `github_repository_id`, `github_branch`).
+Use separate config files for prod and dev:
 
-**Terraform state** goes in an **S3 bucket you create** (`terraform_state_bucket` in `terraform.tfvars`; enable versioning on that bucket in the console). DynamoDB locking is still created by Terraform (`infra/remote-state.tf`). The root module uses a partial `backend "s3" {}` configuration.
+- `infra/terraform.prod.tfvars` + `infra/terraform-backend.prod.hcl`
+- `infra/terraform.dev.tfvars` + `infra/terraform-backend.dev.hcl`
 
-1. Create the S3 bucket, set `terraform_state_bucket` in `terraform.tfvars`, then from `infra/`: `terraform init -backend=false`, `terraform apply` (state stays **local** until step 2), or configure the backend first if the lock table already exists.
-2. Copy `infra/terraform-backend.hcl.example` to `infra/terraform-backend.hcl`. Set `bucket` to your `terraform_state_bucket`, and `key` / `dynamodb_table` using `terraform output` (`terraform_state_key`, `terraform_lock_table`). Run `terraform init -backend-config=terraform-backend.hcl -migrate-state` so later applies (including **CodePipeline**) use remote state.
+Examples are provided for each:
+
+- `infra/terraform.prod.tfvars.example`
+- `infra/terraform.dev.tfvars.example`
+- `infra/terraform-backend.prod.hcl.example`
+- `infra/terraform-backend.dev.hcl.example`
+
+Copy each `*.example` to the matching path without `.example` (those four files are **gitignored** so you don’t commit account-specific values). If they were ever committed, run `git rm --cached` on them once.
+
+Set `terraform_state_bucket` + `terraform_state_key` in each tfvars file, and keep backend `key` aligned with the same environment's tfvars. The S3 bucket is pre-existing; DynamoDB lock table is created by Terraform.
 
 ```bash
 yarn install
-yarn deploy
+yarn tf:init       # prod backend init
+yarn deploy        # prod apply + frontend publish
+yarn tf:init:dev   # dev backend init
+yarn deploy:dev    # dev apply + frontend publish
 ```
 
 This builds the Lambda bundle, runs `terraform apply`, sets `app/frontend/.env` `VITE_API_URL` to the **API** URL (`terraform output -raw vite_api_url`), builds the SPA, syncs it to S3, and invalidates the **frontend** CloudFront distribution. Open `terraform output -raw frontend_cloudfront_url` for the site; the API is at `terraform output -raw api_cloudfront_url`.
 
 ### CodePipeline
 
-Set `github_connection_arn` (create a **CodeStar connection** to GitHub under Developer Tools → Connections and approve it in the console), `github_repository_id` (`owner/repo`), and `github_branch` in `terraform.tfvars`. Every apply provisions the pipeline and CodeBuild project. Pushes to that branch run `buildspec.yml`: Lambda package build, `terraform apply` against the **remote** backend, then frontend build, S3 sync, and CloudFront invalidation. The CodeBuild role uses **AdministratorAccess** for simplicity; tighten the policy for production.
+Set `github_connection_arn` (create a **CodeStar connection** to GitHub under Developer Tools → Connections and approve it in the console), `github_repository_id` (`owner/repo`), and `github_branch` in both environment tfvars files as needed. Every apply provisions the pipeline and CodeBuild project. Pushes to that branch run `buildspec.yml`, which calls **`yarn deploy:ci`** (no committed backend `.hcl` or `terraform.*.tfvars` required).
+
+CodeBuild receives backend and module inputs from environment variables (wired in `infra/pipeline.tf` from your Terraform variables). For a one-off CI run outside that project, set at least:
+
+| Variable | Purpose |
+|----------|---------|
+| `TF_STATE_BUCKET`, `TF_STATE_KEY`, `TF_LOCK_TABLE` | S3 backend + DynamoDB lock |
+| `TF_BACKEND_REGION` | Region for the state bucket (and init); CodeBuild also sets `AWS_DEFAULT_REGION` |
+| `TF_VAR_terraform_state_bucket`, `TF_VAR_terraform_state_key` | Same as backend bucket/key (module inputs) |
+| `TF_VAR_aws_region` | AWS provider region for resources |
+| `TF_VAR_environment` | `prod` or `dev` |
+| `TF_VAR_frontend_public_url`, `TF_VAR_api_public_url`, `TF_VAR_route53_zone_id` | URLs and hosted zone |
+| `TF_VAR_github_connection_arn`, `TF_VAR_github_repository_id`, `TF_VAR_github_branch` | Pipeline source |
+
+Local deploys still use `yarn deploy` / `yarn deploy:dev` with your gitignored `*.hcl` and `terraform.*.tfvars` files.
 
 ```bash
 cd app/frontend && yarn install && yarn dev
 ```
 
-**Destroy**: `yarn destroy`
+**Destroy**: `yarn destroy` (prod) or `yarn destroy:dev` (dev)
 
 ## API
 

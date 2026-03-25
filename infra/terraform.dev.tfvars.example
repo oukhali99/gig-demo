@@ -1,0 +1,13 @@
+# Copy values into terraform.dev.tfvars
+environment = "dev"
+
+terraform_state_bucket = "my-company-terraform-state"
+terraform_state_key    = "gig-demo/dev/terraform.tfstate"
+
+frontend_public_url = "https://app-dev.example.com"
+api_public_url      = "https://api-dev.example.com"
+route53_zone_id     = "Z0123456789ABCDEFGHIJ"
+
+github_connection_arn = "arn:aws:codestar-connections:us-east-1:123456789012:connection/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+github_repository_id  = "myorg/gig-demo"
+github_branch         = "main"

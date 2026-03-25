@@ -4,9 +4,14 @@
   "private": true,
   "scripts": {
     "build": "yarn workspace gig-api build",
-    "deploy": "yarn workspace gig-api build:lambda && cd infra && terraform apply -auto-approve && bash ../scripts/update-frontend-env.sh && bash ../scripts/publish-frontend.sh",
-    "destroy": "cd infra && terraform destroy -auto-approve",
-    "deploy:dev": "yarn workspace gig-api build:lambda && cd infra && terraform apply -auto-approve -var=environment=dev && bash ../scripts/update-frontend-env.sh && bash ../scripts/publish-frontend.sh"
+    "tf:init": "cd infra && terraform init -input=false -reconfigure -backend-config=terraform-backend.prod.hcl",
+    "tf:init:dev": "cd infra && terraform init -input=false -reconfigure -backend-config=terraform-backend.dev.hcl",
+    "tf:init:ci": "bash scripts/tf-init-ci.sh",
+    "deploy": "yarn workspace gig-api build:lambda && yarn run tf:init && cd infra && terraform apply -auto-approve -input=false -var-file=terraform.prod.tfvars && cd .. && bash scripts/update-frontend-env.sh && bash scripts/publish-frontend.sh",
+    "deploy:dev": "yarn workspace gig-api build:lambda && yarn run tf:init:dev && cd infra && terraform apply -auto-approve -input=false -var-file=terraform.dev.tfvars && cd .. && bash scripts/update-frontend-env.sh && bash scripts/publish-frontend.sh",
+    "deploy:ci": "yarn workspace gig-api build:lambda && yarn run tf:init:ci && cd infra && terraform apply -auto-approve -input=false && cd .. && bash scripts/update-frontend-env.sh && bash scripts/publish-frontend.sh",
+    "destroy": "yarn run tf:init && cd infra && terraform destroy -auto-approve -input=false -var-file=terraform.prod.tfvars",
+    "destroy:dev": "yarn run tf:init:dev && cd infra && terraform destroy -auto-approve -input=false -var-file=terraform.dev.tfvars"
   },
   "workspaces": ["app/api"]
 }

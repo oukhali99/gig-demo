@@ -1,9 +1,5 @@
-# DynamoDB table for Terraform state locking. State itself lives in the existing
-# S3 bucket named var.terraform_state_bucket.
-
-locals {
-  terraform_state_key = "${var.name_prefix}/${var.environment}/terraform.tfstate"
-}
+# DynamoDB table for Terraform state locking. State object path is
+# var.terraform_state_bucket + var.terraform_state_key (see variables.tf).
 
 resource "aws_dynamodb_table" "terraform_lock" {
   name         = "${var.name_prefix}-tf-lock-${var.environment}"

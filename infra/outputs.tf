@@ -59,8 +59,8 @@ output "terraform_state_bucket" {
 }
 
 output "terraform_state_key" {
-  description = "S3 object key for this stack's state file"
-  value       = local.terraform_state_key
+  description = "S3 object key for this stack's state file (same as var.terraform_state_key)"
+  value       = var.terraform_state_key
 }
 
 output "terraform_lock_table" {
