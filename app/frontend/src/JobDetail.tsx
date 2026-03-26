@@ -10,7 +10,6 @@ import {
   listBookings,
   getJobImageUploadUrl,
   uploadToPresignedUrl,
-  attachJobImage,
   getJobImageUrls,
   type Job,
   type Booking,
@@ -28,7 +27,7 @@ export default function JobDetail() {
   const [publishing, setPublishing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [booking, setBooking] = useState(false);
-  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+  const [imageUrls, setImageUrls] = useState<Record<string, string | null>>({});
   const [uploadingImage, setUploadingImage] = useState(false);
   const idempotencyKeyRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -100,9 +99,8 @@ export default function JobDetail() {
     setUploadingImage(true);
     setError(null);
     try {
-      const { uploadUrl, imageKey } = await getJobImageUploadUrl(id, file.type);
+      const { uploadUrl, job: updated } = await getJobImageUploadUrl(id, file.type);
       await uploadToPresignedUrl(uploadUrl, file);
-      const updated = await attachJobImage(id, imageKey);
       setJob(updated);
       const urls = await getJobImageUrls(id, updated.imageKeys ?? []);
       setImageUrls(urls);

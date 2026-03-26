@@ -119,8 +119,11 @@ export async function publishJob(id: string): Promise<Job> {
 }
 
 // --- Job images (presigned upload + AI moderation) ---
-export async function getJobImageUploadUrl(jobId: string, contentType?: string): Promise<{ uploadUrl: string; imageKey: string; expiresIn: number }> {
-  return request<{ uploadUrl: string; imageKey: string; expiresIn: number }>(
+export async function getJobImageUploadUrl(
+  jobId: string,
+  contentType?: string
+): Promise<{ uploadUrl: string; imageKey: string; expiresIn: number; job: Job }> {
+  return request<{ uploadUrl: string; imageKey: string; expiresIn: number; job: Job }>(
     `/jobs/${jobId}/images/upload-url`,
     { method: 'POST', body: JSON.stringify({ contentType: contentType ?? 'image/jpeg' }) }
   );
@@ -136,17 +139,10 @@ export async function uploadToPresignedUrl(uploadUrl: string, file: File): Promi
   if (!res.ok) throw new Error(res.statusText || 'Upload failed');
 }
 
-export async function attachJobImage(jobId: string, imageKey: string): Promise<Job> {
-  return request<Job>(`/jobs/${jobId}/images`, {
-    method: 'POST',
-    body: JSON.stringify({ imageKey }),
-  });
-}
-
-export async function getJobImageUrls(jobId: string, keys: string[]): Promise<Record<string, string>> {
+export async function getJobImageUrls(jobId: string, keys: string[]): Promise<Record<string, string | null>> {
   if (keys.length === 0) return {};
   const q = new URLSearchParams({ keys: keys.join(',') });
-  const res = await request<{ urls: Record<string, string> }>(`/jobs/${jobId}/images/urls?${q}`);
+  const res = await request<{ urls: Record<string, string | null> }>(`/jobs/${jobId}/images/urls?${q}`);
   return res.urls ?? {};
 }
 

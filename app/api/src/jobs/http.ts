@@ -158,40 +158,10 @@ async function handleImageUploadUrl(event: APIGatewayProxyEventV2): Promise<APIG
   const ext = contentType === 'image/jpeg' || contentType === 'image/jpg' ? 'jpg' : contentType.split('/')[1] ?? 'jpg';
   const imageKey = `jobs/${jobId}/${randomUUID()}.${ext}`;
   const uploadUrl = await images.getPresignedPutUrl(imageKey, contentType);
-  return json(200, { uploadUrl, imageKey, expiresIn: 300 });
-}
-
-async function handleAttachImage(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
-  const jobId = getJobIdFromPath(event);
-  if (!jobId) return json(400, { errors: [{ field: 'id', message: 'Job ID required' }] });
-
-  const existing = await repo.getJob(jobId);
-  if (!existing) return notFound('Job not found');
-  const sub = getSubFromEvent(event);
-  if (!sub) return json(401, { code: 'UNAUTHORIZED', message: 'Authentication required' });
-  if (existing.clientId !== sub) return json(403, { code: 'FORBIDDEN', message: 'Not the job owner' });
-
-  const body = parseBody<{ imageKey?: string }>(event);
-  const imageKey = typeof body?.imageKey === 'string' ? body.imageKey.trim() : '';
-  if (!imageKey) return badRequest([{ field: 'imageKey', message: 'required non-empty string' }]);
-  const prefix = `jobs/${jobId}/`;
-  if (!imageKey.startsWith(prefix)) {
-    return json(400, { errors: [{ field: 'imageKey', message: 'Key must be for this job (jobs/{jobId}/...)' }] });
-  }
-
-  const exists = await images.objectExists(imageKey);
-  if (!exists) return json(400, { errors: [{ field: 'imageKey', message: 'Upload not found. Upload the file first using the upload URL.' }] });
-
-  const moderation = await images.moderateImage(imageKey);
-  if (!moderation.allowed) {
-    await images.deleteObject(imageKey);
-    return json(400, { code: 'MODERATION_REJECTED', message: moderation.reason ?? 'Image not allowed' });
-  }
-
   const updatedAt = new Date().toISOString();
   const updated = await repo.addJobImageKey(jobId, imageKey, updatedAt);
   if (!updated) return notFound('Job not found');
-  return json(200, updated);
+  return json(200, { uploadUrl, imageKey, expiresIn: 300, job: updated });
 }
 
 async function handleImageUrls(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
@@ -212,9 +182,19 @@ async function handleImageUrls(event: APIGatewayProxyEventV2): Promise<APIGatewa
   if (allowedKeys.length === 0) {
     return json(200, { urls: {} });
   }
-  const urls: Record<string, string> = {};
+  const urls: Record<string, string | null> = {};
   await Promise.all(
     allowedKeys.map(async (key) => {
+      const exists = await images.objectExists(key);
+      if (!exists) {
+        urls[key] = null;
+        return;
+      }
+      const moderationState = await images.getObjectModerationState(key);
+      if (moderationState !== 'approved') {
+        urls[key] = null;
+        return;
+      }
       urls[key] = await images.getPresignedGetUrl(key);
     })
   );
@@ -402,7 +382,6 @@ export async function handleJobs(event: APIGatewayProxyEventV2): Promise<APIGate
     'POST /jobs/{id}/publish': handlePublishJob,
     'POST /jobs/{id}/close': handleCloseJob,
     'POST /jobs/{id}/images/upload-url': handleImageUploadUrl,
-    'POST /jobs/{id}/images': handleAttachImage,
     'GET /jobs/{id}/images/urls': handleImageUrls,
     'DELETE /jobs/{id}': handleDeleteJob,
   };
@@ -420,7 +399,6 @@ export async function handleJobs(event: APIGatewayProxyEventV2): Promise<APIGate
   }
   if (!handlerFn && method === 'POST' && path.startsWith('/jobs/')) {
     if (path.endsWith('/images/upload-url')) handlerFn = handleImageUploadUrl;
-    else if (path.match(/\/jobs\/[^/]+\/images$/) && !path.includes('upload-url')) handlerFn = handleAttachImage;
     else if (path.endsWith('/publish')) handlerFn = routeMap['POST /jobs/{id}/publish'];
     else if (path.endsWith('/close')) handlerFn = routeMap['POST /jobs/{id}/close'];
   }

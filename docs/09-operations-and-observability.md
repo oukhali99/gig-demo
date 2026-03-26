@@ -32,6 +32,10 @@ Terraform outputs (`infra/outputs.tf`):
 - Runtime uses AWS AI services for moderation:
   - **Comprehend** for text toxicity checks.
   - **Rekognition** for image moderation checks.
+- S3 image uploads (`jobs/` and `bookings/` prefixes) trigger a dedicated Lambda (`image-moderation-handler`) to moderate new objects immediately after upload.
+- Image keys are attached immediately after upload; image URL endpoints only return URLs for moderation-approved objects and return `null` for pending/removed ones.
+- Raw S3 image reads are blocked for viewers: `job_images` bucket serves reads via CloudFront OAC only, and only when object tag `moderation=approved`.
+- Both Lambda functions (`api` and `image-moderation-handler`) receive shared runtime config via SSM (`SSM_PARAMETER_PATH` + TTL cache), so future shared config reads work consistently.
 - Keep model thresholds and moderation behavior documented when changed.
 
 ---

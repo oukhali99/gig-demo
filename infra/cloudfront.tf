@@ -1,5 +1,5 @@
-# Three CloudFront distributions: SPA (S3 OAC), API (API Gateway), job images (S3 custom origin;
-# forwards presigned query strings; CORS for the SPA origin).
+# Three CloudFront distributions: SPA (S3 OAC), API (API Gateway), job images (S3 OAC;
+# serves only moderation-approved objects via S3 object-tag policy).
 
 locals {
   api_origin_domain = trimsuffix(trimprefix(aws_apigatewayv2_stage.api.invoke_url, "https://"), "/")
@@ -7,6 +7,13 @@ locals {
 
 resource "aws_cloudfront_origin_access_control" "frontend" {
   name                              = "${local.name_env}-frontend"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+resource "aws_cloudfront_origin_access_control" "job_images" {
+  name                              = "${local.name_env}-job-images"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
@@ -150,17 +157,9 @@ resource "aws_cloudfront_distribution" "job_images" {
   aliases = [local.images_host]
 
   origin {
-    domain_name = aws_s3_bucket.job_images.bucket_regional_domain_name
-    origin_id   = "S3-job-images"
-
-    custom_origin_config {
-      http_port                = 80
-      https_port               = 443
-      origin_protocol_policy   = "https-only"
-      origin_ssl_protocols     = ["TLSv1.2"]
-      origin_read_timeout      = 30
-      origin_keepalive_timeout = 5
-    }
+    domain_name              = aws_s3_bucket.job_images.bucket_regional_domain_name
+    origin_id                = "S3-job-images"
+    origin_access_control_id = aws_cloudfront_origin_access_control.job_images.id
   }
 
   default_cache_behavior {
@@ -170,7 +169,6 @@ resource "aws_cloudfront_distribution" "job_images" {
     allowed_methods            = ["GET", "HEAD", "OPTIONS"]
     cached_methods             = ["GET", "HEAD"]
     cache_policy_id            = data.aws_cloudfront_cache_policy.caching_disabled.id
-    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
     response_headers_policy_id = aws_cloudfront_response_headers_policy.job_images_cors.id
   }
 

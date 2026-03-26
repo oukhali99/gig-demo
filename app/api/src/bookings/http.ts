@@ -253,40 +253,10 @@ async function handleBookingImageUploadUrl(event: APIGatewayProxyEventV2): Promi
   const ext = contentType === 'image/jpeg' || contentType === 'image/jpg' ? 'jpg' : contentType.split('/')[1] ?? 'jpg';
   const imageKey = `bookings/${bookingId}/${randomUUID()}.${ext}`;
   const uploadUrl = await images.getPresignedPutUrl(imageKey, contentType);
-  return json(200, { uploadUrl, imageKey, expiresIn: 300 });
-}
-
-async function handleBookingAttachImage(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
-  const bookingId = getBookingIdFromPath(event);
-  if (!bookingId) return json(400, { errors: [{ field: 'id', message: 'Booking ID required' }] });
-
-  const booking = await repo.getBooking(bookingId);
-  if (!booking) return notFound('Booking not found');
-  const sub = getSubFromEvent(event);
-  if (!sub) return json(401, { code: 'UNAUTHORIZED', message: 'Authentication required' });
-  if (!isBookingParticipant(booking, sub)) return json(403, { code: 'FORBIDDEN', message: 'Not a party to this booking' });
-
-  const body = parseBody<{ imageKey?: string }>(event);
-  const imageKey = typeof body?.imageKey === 'string' ? body.imageKey.trim() : '';
-  if (!imageKey) return badRequest([{ field: 'imageKey', message: 'required non-empty string' }]);
-  const prefix = `bookings/${bookingId}/`;
-  if (!imageKey.startsWith(prefix)) {
-    return json(400, { errors: [{ field: 'imageKey', message: 'Key must be for this booking' }] });
-  }
-
-  const exists = await images.objectExists(imageKey);
-  if (!exists) return json(400, { errors: [{ field: 'imageKey', message: 'Upload not found' }] });
-
-  const moderation = await images.moderateImage(imageKey);
-  if (!moderation.allowed) {
-    await images.deleteObject(imageKey);
-    return json(400, { code: 'MODERATION_REJECTED', message: moderation.reason ?? 'Image not allowed' });
-  }
-
   const updatedAt = new Date().toISOString();
   const updated = await repo.addBookingImageKey(bookingId, imageKey, updatedAt);
   if (!updated) return notFound('Booking not found');
-  return json(200, updated);
+  return json(200, { uploadUrl, imageKey, expiresIn: 300, booking: updated });
 }
 
 async function handleBookingImageUrls(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
@@ -303,8 +273,22 @@ async function handleBookingImageUrls(event: APIGatewayProxyEventV2): Promise<AP
   const requestedKeys = keysParam ? keysParam.split(',').map((k) => k.trim()).filter(Boolean) : [];
   const allowedKeys = (booking.imageKeys ?? []).filter((k) => requestedKeys.includes(k));
   if (allowedKeys.length === 0) return json(200, { urls: {} });
-  const urls: Record<string, string> = {};
-  await Promise.all(allowedKeys.map(async (key) => { urls[key] = await images.getPresignedGetUrl(key); }));
+  const urls: Record<string, string | null> = {};
+  await Promise.all(
+    allowedKeys.map(async (key) => {
+      const exists = await images.objectExists(key);
+      if (!exists) {
+        urls[key] = null;
+        return;
+      }
+      const moderationState = await images.getObjectModerationState(key);
+      if (moderationState !== 'approved') {
+        urls[key] = null;
+        return;
+      }
+      urls[key] = await images.getPresignedGetUrl(key);
+    })
+  );
   return json(200, { urls });
 }
 
@@ -323,7 +307,6 @@ export async function handleBookings(event: APIGatewayProxyEventV2): Promise<API
     'POST /bookings/{id}/complete': handleComplete,
     'POST /bookings/{id}/cancel': handleCancel,
     'POST /bookings/{id}/images/upload-url': handleBookingImageUploadUrl,
-    'POST /bookings/{id}/images': handleBookingAttachImage,
     'GET /bookings/{id}/images/urls': handleBookingImageUrls,
   };
 
@@ -335,7 +318,6 @@ export async function handleBookings(event: APIGatewayProxyEventV2): Promise<API
     if (method === 'GET' && suffix.endsWith('/images/urls')) handlerFn = handleBookingImageUrls;
     else if (method === 'GET' && suffix && !suffix.includes('/')) handlerFn = routeMap['GET /bookings/{id}'];
     else if (method === 'POST' && suffix.endsWith('/images/upload-url')) handlerFn = handleBookingImageUploadUrl;
-    else if (method === 'POST' && suffix.endsWith('/images') && !suffix.includes('upload-url')) handlerFn = handleBookingAttachImage;
     else if (method === 'POST' && suffix.endsWith('/confirm')) handlerFn = routeMap['POST /bookings/{id}/confirm'];
     else if (method === 'POST' && suffix.endsWith('/start')) handlerFn = routeMap['POST /bookings/{id}/start'];
     else if (method === 'POST' && suffix.endsWith('/complete')) handlerFn = routeMap['POST /bookings/{id}/complete'];

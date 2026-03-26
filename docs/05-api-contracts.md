@@ -34,9 +34,8 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 | GET | `/jobs` | List jobs. Query: `status`, `category`, `location`, `limit`, `cursor`; `clientId=me` for current user’s jobs. |
 | POST | `/jobs/{id}/publish` | Publish draft (owner). |
 | POST | `/jobs/{id}/close` | Close draft or published job (owner). Body optional `reason`. |
-| POST | `/jobs/{id}/images/upload-url` | Presigned PUT URL. Body optional `contentType`. |
-| POST | `/jobs/{id}/images` | Attach image after upload; Rekognition moderation. Body: `imageKey`. |
-| GET | `/jobs/{id}/images/urls` | Presigned GET URLs. Query: `keys=key1,key2`. Published or owner. |
+| POST | `/jobs/{id}/images/upload-url` | Single API call for upload+attach. Reserves a key and adds it to job `imageKeys`, then returns presigned PUT URL. Body optional `contentType`. Upload triggers async Lambda moderation on S3 object create. |
+| GET | `/jobs/{id}/images/urls` | CDN image URLs (not S3 presigned GET). Query: `keys=key1,key2`. Published or owner. Returns `{ urls: { "<key>": "<url-or-null>" } }`; `null` means not approved yet or removed by moderation. |
 
 ### Bookings
 
@@ -49,9 +48,8 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 | POST | `/bookings/{id}/start` | Worker: confirmed → in progress. |
 | POST | `/bookings/{id}/complete` | Client or worker completes → payment release hook. |
 | POST | `/bookings/{id}/cancel` | Client or worker cancels. Body optional `reason` → payment refund hook. |
-| POST | `/bookings/{id}/images/upload-url` | Presigned PUT for booking image. |
-| POST | `/bookings/{id}/images` | Attach image (participant). |
-| GET | `/bookings/{id}/images/urls` | Presigned GET. Query: `keys=`. |
+| POST | `/bookings/{id}/images/upload-url` | Single API call for upload+attach. Reserves a key and adds it to booking `imageKeys`, then returns presigned PUT URL. Upload triggers async Lambda moderation on S3 object create. |
+| GET | `/bookings/{id}/images/urls` | CDN image URLs. Query: `keys=`. Returns `url-or-null` per key; `null` means not approved yet or removed by moderation. |
 
 ### Payments
 

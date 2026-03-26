@@ -47,7 +47,6 @@ locals {
     "POST /jobs/{id}/publish"               = true
     "POST /jobs/{id}/close"                 = true
     "POST /jobs/{id}/images/upload-url"     = true
-    "POST /jobs/{id}/images"                = true
     "GET /jobs/{id}/images/urls"            = true
     "POST /bookings"                        = true
     "GET /bookings"                         = true
@@ -57,7 +56,6 @@ locals {
     "POST /bookings/{id}/complete"          = true
     "POST /bookings/{id}/cancel"            = true
     "POST /bookings/{id}/images/upload-url" = true
-    "POST /bookings/{id}/images"            = true
     "GET /bookings/{id}/images/urls"        = true
     "POST /payments/hold"                   = true
     "GET /payments/{id}"                    = true
