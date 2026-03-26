@@ -5,7 +5,7 @@
 # rules. For stricter checks, add a pre sign-up Lambda trigger on the user pool.
 
 resource "aws_cognito_user_pool" "main" {
-  name = "${var.name_prefix}-users-${var.environment}"
+  name = "${local.name_env}-users"
 
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
@@ -41,7 +41,7 @@ resource "aws_cognito_user_pool" "main" {
 }
 
 resource "aws_cognito_user_pool_client" "main" {
-  name         = "${var.name_prefix}-app-${var.environment}"
+  name         = "${local.name_env}-app"
   user_pool_id = aws_cognito_user_pool.main.id
 
   explicit_auth_flows = [

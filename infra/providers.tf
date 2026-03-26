@@ -3,7 +3,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      StackId     = "${var.name_prefix}-${var.environment}"
+      StackId     = local.name_env
       Environment = var.environment
       ManagedBy   = "terraform"
     }
@@ -17,7 +17,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      StackId     = "${var.name_prefix}-${var.environment}"
+      StackId     = local.name_env
       Environment = var.environment
       ManagedBy   = "terraform"
     }

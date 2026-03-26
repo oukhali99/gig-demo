@@ -1,7 +1,7 @@
 # Amazon S3 — job/booking images (private; presigned PUT to bucket, presigned GET via CloudFront) and SPA (OAC).
 
 resource "aws_s3_bucket" "frontend" {
-  bucket = "${var.name_prefix}-frontend-${var.environment}-${substr(md5(data.aws_caller_identity.current.account_id), 0, 8)}"
+  bucket = "${local.name_env}-frontend-${substr(md5(data.aws_caller_identity.current.account_id), 0, 8)}"
 }
 
 resource "aws_s3_bucket_public_access_block" "frontend" {
@@ -14,7 +14,7 @@ resource "aws_s3_bucket_public_access_block" "frontend" {
 }
 
 resource "aws_s3_bucket" "job_images" {
-  bucket = "${var.name_prefix}-job-images-${var.environment}-${substr(md5(data.aws_caller_identity.current.account_id), 0, 8)}"
+  bucket = "${local.name_env}-job-images-${substr(md5(data.aws_caller_identity.current.account_id), 0, 8)}"
 }
 
 resource "aws_s3_bucket_public_access_block" "job_images" {

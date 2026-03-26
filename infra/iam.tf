@@ -1,7 +1,7 @@
 # AWS IAM — execution role and inline policies for the monolith Lambda.
 
 resource "aws_iam_role" "api_lambda" {
-  name = "${var.name_prefix}-api-lambda-role-${var.environment}"
+  name = "${local.name_env}-api-lambda-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

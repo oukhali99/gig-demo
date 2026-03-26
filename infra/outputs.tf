@@ -28,6 +28,16 @@ output "frontend_bucket_name" {
   value       = aws_s3_bucket.frontend.id
 }
 
+output "job_images_bucket_name" {
+  description = "S3 bucket for job/booking images"
+  value       = aws_s3_bucket.job_images.id
+}
+
+output "pipeline_artifacts_bucket_name" {
+  description = "S3 bucket for CodePipeline artifacts"
+  value       = aws_s3_bucket.pipeline_artifacts.id
+}
+
 output "frontend_cloudfront_distribution_id" {
   description = "SPA distribution ID (S3 publish invalidations)"
   value       = aws_cloudfront_distribution.frontend.id
@@ -55,7 +65,7 @@ output "resource_group_name" {
 
 output "stack_id_tag" {
   description = "Value of the StackId tag on all taggable resources in this stack"
-  value       = "${var.name_prefix}-${var.environment}"
+  value       = local.name_env
 }
 
 output "terraform_state_bucket" {

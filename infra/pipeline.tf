@@ -1,7 +1,7 @@
 # CodePipeline: GitHub (CodeStar Connection) → CodeBuild → terraform apply + frontend publish.
 
 resource "aws_s3_bucket" "pipeline_artifacts" {
-  bucket = "${var.name_prefix}-pipeline-artifacts-${var.environment}-${substr(md5(data.aws_caller_identity.current.account_id), 0, 8)}"
+  bucket = "${local.name_env}-pipeline-artifacts-${substr(md5(data.aws_caller_identity.current.account_id), 0, 8)}"
 }
 
 resource "aws_s3_bucket_versioning" "pipeline_artifacts" {
@@ -41,7 +41,7 @@ data "aws_iam_policy_document" "codebuild_assume" {
 }
 
 resource "aws_iam_role" "codebuild" {
-  name               = "${var.name_prefix}-codebuild-${var.environment}"
+  name               = "${local.name_env}-codebuild"
   assume_role_policy = data.aws_iam_policy_document.codebuild_assume.json
 }
 
@@ -52,12 +52,12 @@ resource "aws_iam_role_policy_attachment" "codebuild_admin" {
 }
 
 resource "aws_cloudwatch_log_group" "codebuild" {
-  name              = "/aws/codebuild/${var.name_prefix}-deploy-${var.environment}"
+  name              = "/aws/codebuild/${local.name_env}-deploy"
   retention_in_days = 14
 }
 
 resource "aws_codebuild_project" "deploy" {
-  name         = "${var.name_prefix}-deploy-${var.environment}"
+  name         = "${local.name_env}-deploy"
   service_role = aws_iam_role.codebuild.arn
 
   artifacts {
@@ -162,7 +162,7 @@ data "aws_iam_policy_document" "codepipeline_assume" {
 }
 
 resource "aws_iam_role" "codepipeline" {
-  name               = "${var.name_prefix}-codepipeline-${var.environment}"
+  name               = "${local.name_env}-codepipeline"
   assume_role_policy = data.aws_iam_policy_document.codepipeline_assume.json
 }
 
@@ -212,7 +212,7 @@ resource "aws_iam_role_policy" "codepipeline" {
 }
 
 resource "aws_codepipeline" "main" {
-  name     = "${var.name_prefix}-pipeline-${var.environment}"
+  name     = "${local.name_env}-pipeline"
   role_arn = aws_iam_role.codepipeline.arn
 
   artifact_store {

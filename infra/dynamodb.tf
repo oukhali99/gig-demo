@@ -1,7 +1,7 @@
 # Amazon DynamoDB — domain tables (jobs, bookings, payments, notifications, reviews).
 
 resource "aws_dynamodb_table" "jobs" {
-  name         = "${var.name_prefix}-jobs-${var.environment}"
+  name         = "${local.name_env}-jobs"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "jobId"
 
@@ -37,7 +37,7 @@ resource "aws_dynamodb_table" "jobs" {
 }
 
 resource "aws_dynamodb_table" "bookings" {
-  name         = "${var.name_prefix}-bookings-${var.environment}"
+  name         = "${local.name_env}-bookings"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "bookingId"
 
@@ -92,7 +92,7 @@ resource "aws_dynamodb_table" "bookings" {
 }
 
 resource "aws_dynamodb_table" "payments" {
-  name         = "${var.name_prefix}-payments-${var.environment}"
+  name         = "${local.name_env}-payments"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "paymentId"
 
@@ -127,7 +127,7 @@ resource "aws_dynamodb_table" "payments" {
 }
 
 resource "aws_dynamodb_table" "notifications" {
-  name         = "${var.name_prefix}-notifications-${var.environment}"
+  name         = "${local.name_env}-notifications"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "userId"
   range_key    = "eventId"
@@ -143,7 +143,7 @@ resource "aws_dynamodb_table" "notifications" {
 }
 
 resource "aws_dynamodb_table" "reviews" {
-  name         = "${var.name_prefix}-reviews-${var.environment}"
+  name         = "${local.name_env}-reviews"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "bookingId"
   range_key    = "reviewerId"

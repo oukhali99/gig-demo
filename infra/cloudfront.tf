@@ -6,7 +6,7 @@ locals {
 }
 
 resource "aws_cloudfront_origin_access_control" "frontend" {
-  name                              = "${var.name_prefix}-frontend-${var.environment}"
+  name                              = "${local.name_env}-frontend"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
@@ -27,7 +27,7 @@ data "aws_cloudfront_origin_request_policy" "all_viewer_except_host" {
 resource "aws_cloudfront_distribution" "frontend" {
   enabled             = true
   is_ipv6_enabled     = true
-  comment             = "${var.name_prefix} frontend ${var.environment}"
+  comment             = "${local.name_env} frontend"
   default_root_object = "index.html"
   price_class         = "PriceClass_100"
 
@@ -78,7 +78,7 @@ resource "aws_cloudfront_distribution" "frontend" {
 resource "aws_cloudfront_distribution" "api" {
   enabled         = true
   is_ipv6_enabled = true
-  comment         = "${var.name_prefix} api ${var.environment}"
+  comment         = "${local.name_env} api"
   price_class     = "PriceClass_100"
 
   aliases = [local.api_host]
@@ -123,7 +123,7 @@ resource "aws_cloudfront_distribution" "api" {
 }
 
 resource "aws_cloudfront_response_headers_policy" "job_images_cors" {
-  name = "${var.name_prefix}-job-images-cors-${var.environment}"
+  name = "${local.name_env}-job-images-cors"
 
   cors_config {
     access_control_allow_credentials = false
@@ -144,7 +144,7 @@ resource "aws_cloudfront_response_headers_policy" "job_images_cors" {
 resource "aws_cloudfront_distribution" "job_images" {
   enabled         = true
   is_ipv6_enabled = true
-  comment         = "${var.name_prefix} job images ${var.environment}"
+  comment         = "${local.name_env} job images"
   price_class     = "PriceClass_100"
 
   aliases = [local.images_host]

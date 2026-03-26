@@ -7,7 +7,7 @@ data "archive_file" "api" {
 }
 
 resource "aws_lambda_function" "api" {
-  function_name    = "${var.name_prefix}-api-${var.environment}"
+  function_name    = "${local.name_env}-api"
   role             = aws_iam_role.api_lambda.arn
   handler          = "handler.handler"
   runtime          = "nodejs20.x"

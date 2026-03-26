@@ -1,7 +1,7 @@
 # Amazon API Gateway — HTTP API, JWT authorizer, Lambda proxy integration, routes.
 
 resource "aws_apigatewayv2_api" "api" {
-  name          = "${var.name_prefix}-api-${var.environment}"
+  name          = "${local.name_env}-api"
   protocol_type = "HTTP"
 
   cors_configuration {
