@@ -6,6 +6,15 @@ The stack is entirely managed AWS services (no servers to run). Splitting into m
 
 **Documentation**: [docs/README.md](docs/README.md) — product, architecture, API contracts, sequences, flowcharts, and ADRs.
 
+## AI tools used
+
+- **Cursor AI (Agent mode)** — used to accelerate implementation, refactors, and doc updates.
+- **LLM assistance (via Cursor chat/agent)** — used for drafting explanations, API summaries, and consistency checks in docs.
+- **Amazon Comprehend** — runtime AI moderation for job text (`DetectToxicContent`).
+- **Amazon Rekognition** — runtime AI moderation for uploaded images (`DetectModerationLabels`).
+
+These AI tools assist development and runtime moderation, but human review remains required for final architecture and product decisions.
+
 ## Repo structure
 
 ```

@@ -26,6 +26,16 @@ Terraform outputs (`infra/outputs.tf`):
 
 ---
 
+## AI tooling notes
+
+- Development uses Cursor AI + LLM assistance for implementation speed and documentation quality.
+- Runtime uses AWS AI services for moderation:
+  - **Comprehend** for text toxicity checks.
+  - **Rekognition** for image moderation checks.
+- Keep model thresholds and moderation behavior documented when changed.
+
+---
+
 ## Metrics and alarms
 
 - Not defined in Terraform in this repo. Recommended later: Lambda errors/throttles, API Gateway `5XX`, DynamoDB throttling (on-demand rarely needs it at small scale).

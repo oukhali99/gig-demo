@@ -19,7 +19,7 @@
 | `/` | Published jobs list (auth required in current app). |
 | `/login`, `/register` | Cognito-backed auth via identity service. |
 | `/jobs/new` | Create draft job. |
-| `/jobs/:id` | Job detail, publish, book, photos (if implemented). |
+| `/jobs/:id` | Job detail; owner can publish draft, **delete draft**, add photos; workers can book when published. |
 | `/drafts` | User’s draft jobs. |
 | `/bookings` | User’s bookings + actions. |
 | `/admin` | If `isAdmin` from `/auth/me`, overview tables (when enabled in backend). |

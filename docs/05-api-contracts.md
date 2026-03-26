@@ -29,6 +29,7 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 |--------|------|---------|
 | POST | `/jobs` | Create draft job. Body: `title`, `categoryId`, `location`, `description`, `budget`, `scheduledAt`. |
 | PUT | `/jobs/{id}` | Update job (owner, draft or published only). |
+| DELETE | `/jobs/{id}` | Permanently delete a **draft** job (owner only). `409` if not draft. `204` empty body on success; attached job images are removed from S3 best-effort after delete. |
 | GET | `/jobs/{id}` | Get job by id. |
 | GET | `/jobs` | List jobs. Query: `status`, `category`, `location`, `limit`, `cursor`; `clientId=me` for current user’s jobs. |
 | POST | `/jobs/{id}/publish` | Publish draft (owner). |
@@ -89,7 +90,7 @@ Same key returns the same stored resource when applicable (bookings by GSI on id
 
 ## Common response shapes
 
-- **Success**: `200` / `201` with JSON body; lists often `{ "items": [...], "nextCursor"?: string }`.
+- **Success**: `200` / `201` with JSON body; lists often `{ "items": [...], "nextCursor"?: string }`. **`204`** for `DELETE /jobs/{id}` (no JSON body).
 - **Validation**: `400` with `{ "errors": [{ "field", "message" }] }`.
 - **Not found**: `404` with `{ "code": "NOT_FOUND", "message": "..." }`.
 - **Forbidden**: `403` with `{ "code": "FORBIDDEN", "message": "..." }`.

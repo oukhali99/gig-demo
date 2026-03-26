@@ -27,6 +27,7 @@ Defined in `app/api/src/lib/events-envelope.ts`:
 | `job.created` | Jobs | `jobId`, `clientId`, … |
 | `job.published` | Jobs | `jobId`, `clientId` |
 | `job.closed` | Jobs | `jobId`, `clientId`, optional `reason` |
+| `job.deleted` | Jobs | `jobId`, `clientId` (draft removed; owner gets an inbox row like other job events) |
 | `booking.created` | Bookings | `bookingId`, `jobId`, `workerId`, `clientId`, `status` |
 | `booking.confirmed` | Bookings | `bookingId`, `jobId`, `workerId`, `clientId` |
 | `booking.in_progress` | Bookings | booking parties, `startedAt` |

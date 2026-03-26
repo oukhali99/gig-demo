@@ -23,6 +23,22 @@ Product, architecture, contracts, and decisions for this repo. Start here, then 
 
 ---
 
+## AI tools used
+
+| Tool | Where used | Purpose |
+|------|------------|---------|
+| Cursor AI (agent/chat) | Development workflow | Implement changes faster and keep docs/code aligned. |
+| LLM assistance in Cursor | Documentation process | Draft and refine technical explanations and contract summaries. |
+| Amazon Comprehend | API runtime (`app/api/src/shared/text-moderation.ts`) | Toxicity moderation for job text. |
+| Amazon Rekognition | API runtime (`app/api/src/shared/images.ts`) | Moderation for uploaded images. |
+
+Notes:
+
+- AI output in docs/code is reviewed by maintainers before merge.
+- Runtime moderation thresholds are configurable and should be tuned with product policy.
+
+---
+
 ## Glossary
 
 | Term | Definition |

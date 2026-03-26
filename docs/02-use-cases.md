@@ -19,6 +19,7 @@
 | UC-13 | List notifications | User | See inbox rows for past domain events. |
 | UC-14 | Submit review | Booking party | Rate/text review after completion. |
 | UC-15 | List reviews | Any authenticated user | List reviews for a user (`revieweeId`). |
+| UC-16 | Delete draft job | Job owner | Remove a draft before publish (`DELETE /jobs/{id}`); published jobs must be closed, not deleted. |
 
 ---
 

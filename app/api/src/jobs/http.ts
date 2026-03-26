@@ -302,6 +302,58 @@ async function handlePublishJob(event: APIGatewayProxyEventV2): Promise<APIGatew
   return json(200, updated);
 }
 
+async function handleDeleteJob(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const jobId = getJobIdFromPath(event);
+  if (!jobId) return json(400, { errors: [{ field: 'id', message: 'Job ID required' }] });
+
+  const sub = getSubFromEvent(event);
+  if (!sub) {
+    return json(401, { code: 'UNAUTHORIZED', message: 'Authentication required' });
+  }
+
+  const existing = await repo.getJob(jobId);
+  if (!existing) return notFound('Job not found');
+  if (existing.clientId !== sub) {
+    return json(403, { code: 'FORBIDDEN', message: 'You are not the owner of this job' });
+  }
+  if (existing.status !== 'draft') {
+    return json(409, {
+      code: 'CONFLICT',
+      message: 'Only draft jobs can be deleted. Close a published job instead.',
+    });
+  }
+
+  try {
+    await repo.deleteJob(jobId, sub);
+  } catch (e: unknown) {
+    const err = e as { name?: string };
+    if (err.name === 'ConditionalCheckFailedException') {
+      return json(409, {
+        code: 'CONFLICT',
+        message: 'Job cannot be deleted. It may have been published or removed.',
+      });
+    }
+    throw e;
+  }
+
+  const correlationId = getCorrelationId(event);
+  await events.publishJobDeleted(jobId, sub, correlationId);
+
+  for (const key of existing.imageKeys ?? []) {
+    try {
+      await images.deleteObject(key);
+    } catch {
+      console.error('Failed to delete job image from S3', key);
+    }
+  }
+
+  return {
+    statusCode: 204,
+    headers: { 'Access-Control-Allow-Origin': '*' },
+    body: '',
+  };
+}
+
 async function handleCloseJob(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
   const jobId = getJobIdFromPath(event);
   if (!jobId) return json(400, { errors: [{ field: 'id', message: 'Job ID required' }] });
@@ -352,6 +404,7 @@ export async function handleJobs(event: APIGatewayProxyEventV2): Promise<APIGate
     'POST /jobs/{id}/images/upload-url': handleImageUploadUrl,
     'POST /jobs/{id}/images': handleAttachImage,
     'GET /jobs/{id}/images/urls': handleImageUrls,
+    'DELETE /jobs/{id}': handleDeleteJob,
   };
 
   let handlerFn: RouteHandler | undefined = routeMap[routeKey];
@@ -361,6 +414,9 @@ export async function handleJobs(event: APIGatewayProxyEventV2): Promise<APIGate
   }
   if (!handlerFn && method === 'PUT' && path.startsWith('/jobs/')) {
     handlerFn = routeMap['PUT /jobs/{id}'];
+  }
+  if (!handlerFn && method === 'DELETE' && /^\/jobs\/[^/]+$/.test(path)) {
+    handlerFn = handleDeleteJob;
   }
   if (!handlerFn && method === 'POST' && path.startsWith('/jobs/')) {
     if (path.endsWith('/images/upload-url')) handlerFn = handleImageUploadUrl;

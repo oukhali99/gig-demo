@@ -13,8 +13,8 @@
     "deploy:ci": "yarn workspace gig-api build:lambda && yarn run tf:init:ci && cd infra && terraform apply -auto-approve -input=false -lock-timeout=30m && cd .. && bash scripts/update-frontend-env.sh && bash scripts/publish-frontend.sh",
     "destroy:soft": "yarn run tf:init && cd infra && terraform destroy -auto-approve -input=false -var-file=terraform.prod.tfvars",
     "destroy": "bash scripts/empty-stack-s3-buckets.sh prod && yarn run destroy:soft",
-    "destroy:dev:soft": "bash scripts/empty-stack-s3-buckets.sh dev && yarn run destroy:dev:soft",
-    "destroy:dev": "yarn run tf:init:dev && cd infra && terraform destroy -auto-approve -input=false -var-file=terraform.dev.tfvars"
+    "destroy:dev:soft": "yarn run tf:init:dev && cd infra && terraform destroy -auto-approve -input=false -var-file=terraform.dev.tfvars",
+    "destroy:dev": "bash scripts/empty-stack-s3-buckets.sh dev && yarn run destroy:dev:soft"
   },
   "workspaces": ["app/api", "app/frontend"]
 }

@@ -38,6 +38,9 @@ function notificationsFromEnvelope(env: EventEnvelope): { userId: string; title:
     case 'job.closed':
       add(cid, 'Job closed', `Job ${jobId.slice(0, 8)}… was closed`);
       break;
+    case 'job.deleted':
+      add(cid, 'Draft deleted', `Job ${jobId.slice(0, 8)}… was removed`);
+      break;
     case 'booking.created':
       add(cid, 'New booking request', `Someone requested booking ${bookingId.slice(0, 8)}…`);
       break;

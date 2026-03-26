@@ -35,3 +35,8 @@ export async function publishJobClosed(
   const detail = createEventEnvelope(PRODUCER, EVENT_VERSION, 'job.closed', payload, correlationId);
   await broadcastEvent(detail);
 }
+
+export async function publishJobDeleted(jobId: string, clientId: string, correlationId: string): Promise<void> {
+  const detail = createEventEnvelope(PRODUCER, EVENT_VERSION, 'job.deleted', { jobId, clientId }, correlationId);
+  await broadcastEvent(detail);
+}

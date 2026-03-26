@@ -151,10 +151,10 @@ export async function getJobImageUrls(jobId: string, keys: string[]): Promise<Re
 }
 
 export async function deleteJob(id: string): Promise<void> {
-  const res = await fetch(`${BASE}/jobs/${id}`, {
-    method: 'DELETE',
-    headers: { ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {}) },
-  });
+  const url = BASE ? `${BASE}/jobs/${id}` : `/jobs/${id}`;
+  const headers: Record<string, string> = {};
+  if (getAuthToken()) headers['Authorization'] = `Bearer ${getAuthToken()}`;
+  const res = await fetch(url, { method: 'DELETE', headers });
   if (res.status === 204) return;
   const err = await res.json().catch(() => ({}));
   throw new Error((err as { message?: string }).message ?? res.statusText);

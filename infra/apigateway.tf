@@ -43,6 +43,7 @@ locals {
     "POST /jobs"                            = true
     "GET /jobs/{id}"                        = true
     "PUT /jobs/{id}"                        = true
+    "DELETE /jobs/{id}"                     = true
     "POST /jobs/{id}/publish"               = true
     "POST /jobs/{id}/close"                 = true
     "POST /jobs/{id}/images/upload-url"     = true
