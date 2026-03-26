@@ -128,3 +128,23 @@ resource "aws_iam_role_policy_attachment" "api_lambda_logs" {
   role       = aws_iam_role.api_lambda.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
+resource "aws_iam_role_policy" "api_lambda_ssm" {
+  name = "ssm-api-config"
+  role = aws_iam_role.api_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParametersByPath",
+          "ssm:GetParameter",
+          "ssm:GetParameters"
+        ]
+        Resource = "arn:${data.aws_partition.current.partition}:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/${local.name_env}/api/*"
+      }
+    ]
+  })
+}

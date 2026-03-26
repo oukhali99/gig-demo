@@ -124,3 +124,31 @@ variable "github_branch" {
   type        = string
   default     = "main"
 }
+
+variable "images_cdn_base_url" {
+  description = "Image CDN base URL without trailing slash, stored in SSM as IMAGES_CDN_BASE_URL. Empty uses images_public_url (trimmed)."
+  type        = string
+  default     = ""
+}
+
+variable "text_moderation_toxic_score_threshold" {
+  description = "Comprehend toxicity score 0–1; stored in SSM for Lambda (TEXT_MODERATION_TOXIC_SCORE_THRESHOLD)."
+  type        = number
+  default     = 0.65
+
+  validation {
+    condition     = var.text_moderation_toxic_score_threshold >= 0 && var.text_moderation_toxic_score_threshold <= 1
+    error_message = "text_moderation_toxic_score_threshold must be between 0 and 1 inclusive."
+  }
+}
+
+variable "api_ssm_config_ttl_seconds" {
+  description = "Lambda refetches SSM runtime params after this many seconds in a warm instance. 0 = fetch once per instance only. Use for manual SSM edits without redeploy."
+  type        = number
+  default     = 300
+
+  validation {
+    condition     = var.api_ssm_config_ttl_seconds >= 0 && var.api_ssm_config_ttl_seconds <= 86400
+    error_message = "api_ssm_config_ttl_seconds must be between 0 and 86400 (24h)."
+  }
+}

@@ -1,0 +1,26 @@
+# Runtime config for the API Lambda: SSM String parameters under /{name_env}/api/*.
+# Tunable values use variables (tfvars); infra IDs are wired from Terraform resources.
+
+locals {
+  images_cdn_base_url_effective = var.images_cdn_base_url != "" ? trimsuffix(trimspace(var.images_cdn_base_url), "/") : trimsuffix(trimspace(var.images_public_url), "/")
+}
+
+resource "aws_ssm_parameter" "api_runtime" {
+  for_each = {
+    JOBS_TABLE_NAME                       = aws_dynamodb_table.jobs.name
+    BOOKINGS_TABLE_NAME                   = aws_dynamodb_table.bookings.name
+    PAYMENTS_TABLE_NAME                   = aws_dynamodb_table.payments.name
+    NOTIFICATIONS_TABLE_NAME              = aws_dynamodb_table.notifications.name
+    REVIEWS_TABLE_NAME                    = aws_dynamodb_table.reviews.name
+    BUCKET_NAME                           = aws_s3_bucket.job_images.bucket
+    IMAGES_CDN_BASE_URL                   = local.images_cdn_base_url_effective
+    USER_POOL_ID                          = aws_cognito_user_pool.main.id
+    CLIENT_ID                             = aws_cognito_user_pool_client.main.id
+    ENVIRONMENT                           = var.environment
+    TEXT_MODERATION_TOXIC_SCORE_THRESHOLD = tostring(var.text_moderation_toxic_score_threshold)
+  }
+
+  name  = "/${local.name_env}/api/${each.key}"
+  type  = "String"
+  value = each.value
+}

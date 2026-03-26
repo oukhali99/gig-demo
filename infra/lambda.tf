@@ -17,16 +17,10 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      JOBS_TABLE_NAME          = aws_dynamodb_table.jobs.name
-      BOOKINGS_TABLE_NAME      = aws_dynamodb_table.bookings.name
-      PAYMENTS_TABLE_NAME      = aws_dynamodb_table.payments.name
-      NOTIFICATIONS_TABLE_NAME = aws_dynamodb_table.notifications.name
-      REVIEWS_TABLE_NAME       = aws_dynamodb_table.reviews.name
-      BUCKET_NAME              = aws_s3_bucket.job_images.bucket
-      IMAGES_CDN_BASE_URL      = "https://${local.images_host}"
-      USER_POOL_ID             = aws_cognito_user_pool.main.id
-      CLIENT_ID                = aws_cognito_user_pool_client.main.id
-      ENVIRONMENT              = var.environment
+      SSM_PARAMETER_PATH      = "/${local.name_env}/api"
+      SSM_CONFIG_TTL_SECONDS  = tostring(var.api_ssm_config_ttl_seconds)
+      # Changes when any SSM runtime param changes so Lambda config updates on apply.
+      API_RUNTIME_SIGNATURE = sha256(join(",", [for k in sort(keys(aws_ssm_parameter.api_runtime)) : "${k}=${aws_ssm_parameter.api_runtime[k].value}"]))
     }
   }
 }

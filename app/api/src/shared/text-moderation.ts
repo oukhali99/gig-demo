@@ -1,9 +1,14 @@
 import { ComprehendClient, DetectToxicContentCommand } from '@aws-sdk/client-comprehend';
 
-/** Reject when any toxicity label meets or exceeds this score (0–1). */
-const TOXIC_SCORE_THRESHOLD = 0.65;
-
 const client = new ComprehendClient({});
+
+function toxicScoreThreshold(): number {
+  const raw = process.env.TEXT_MODERATION_TOXIC_SCORE_THRESHOLD;
+  if (raw == null || raw === '') return 0.65;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return 0.65;
+  return Math.min(1, Math.max(0, n));
+}
 
 export type TextFieldToModerate = { field: string; text: string };
 
@@ -25,12 +30,13 @@ export async function moderateTextFields(
     })
   );
 
+  const threshold = toxicScoreThreshold();
   const results = out.ResultList ?? [];
   for (let i = 0; i < results.length; i++) {
     const fieldName = prepared[i]?.field ?? 'content';
     const item = results[i];
     const overall = item?.Toxicity ?? 0;
-    if (overall >= TOXIC_SCORE_THRESHOLD) {
+    if (overall >= threshold) {
       return {
         allowed: false,
         reason: `Text moderation: overall toxicity in ${fieldName} (${(overall * 100).toFixed(0)}% confidence). Please revise.`,
@@ -38,7 +44,7 @@ export async function moderateTextFields(
     }
     for (const label of item?.Labels ?? []) {
       const score = label.Score ?? 0;
-      if (score >= TOXIC_SCORE_THRESHOLD) {
+      if (score >= threshold) {
         return {
           allowed: false,
           reason: `Text moderation: ${label.Name ?? 'Inappropriate content'} in ${fieldName} (${(score * 100).toFixed(0)}% confidence). Please revise.`,

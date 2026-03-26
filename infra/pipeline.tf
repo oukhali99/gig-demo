@@ -141,6 +141,18 @@ resource "aws_codebuild_project" "deploy" {
       name  = "TF_VAR_github_branch"
       value = var.github_branch
     }
+    environment_variable {
+      name  = "TF_VAR_images_cdn_base_url"
+      value = var.images_cdn_base_url
+    }
+    environment_variable {
+      name  = "TF_VAR_text_moderation_toxic_score_threshold"
+      value = tostring(var.text_moderation_toxic_score_threshold)
+    }
+    environment_variable {
+      name  = "TF_VAR_api_ssm_config_ttl_seconds"
+      value = tostring(var.api_ssm_config_ttl_seconds)
+    }
   }
 
   logs_config {
@@ -192,7 +204,7 @@ data "aws_iam_policy_document" "codepipeline_policy" {
     resources = [aws_codebuild_project.deploy.arn]
   }
 
-  statement {
+    statement {
     sid       = "CodeStarConnection"
     actions   = ["codestar-connections:UseConnection"]
     resources = [var.github_connection_arn]
