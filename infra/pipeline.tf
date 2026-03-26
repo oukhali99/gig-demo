@@ -149,10 +149,6 @@ resource "aws_codebuild_project" "deploy" {
       name  = "TF_VAR_text_moderation_toxic_score_threshold"
       value = tostring(var.text_moderation_toxic_score_threshold)
     }
-    environment_variable {
-      name  = "TF_VAR_api_ssm_config_ttl_seconds"
-      value = tostring(var.api_ssm_config_ttl_seconds)
-    }
   }
 
   logs_config {

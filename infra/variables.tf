@@ -142,13 +142,3 @@ variable "text_moderation_toxic_score_threshold" {
   }
 }
 
-variable "api_ssm_config_ttl_seconds" {
-  description = "Lambda refetches SSM runtime params after this many seconds in a warm instance. 0 = fetch once per instance only. Use for manual SSM edits without redeploy."
-  type        = number
-  default     = 300
-
-  validation {
-    condition     = var.api_ssm_config_ttl_seconds >= 0 && var.api_ssm_config_ttl_seconds <= 86400
-    error_message = "api_ssm_config_ttl_seconds must be between 0 and 86400 (24h)."
-  }
-}

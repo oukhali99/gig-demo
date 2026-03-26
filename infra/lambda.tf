@@ -17,8 +17,7 @@ resource "aws_lambda_function" "api" {
 
   environment {
     variables = {
-      SSM_PARAMETER_PATH      = "/${local.name_env}/api"
-      SSM_CONFIG_TTL_SECONDS  = tostring(var.api_ssm_config_ttl_seconds)
+      SSM_PARAMETER_PATH = "/${local.name_env}/api"
       # Changes when any SSM runtime param changes so Lambda config updates on apply.
       API_RUNTIME_SIGNATURE = sha256(join(",", [for k in sort(keys(aws_ssm_parameter.api_runtime)) : "${k}=${aws_ssm_parameter.api_runtime[k].value}"]))
     }
@@ -44,9 +43,8 @@ resource "aws_lambda_function" "image_moderation" {
 
   environment {
     variables = {
-      BUCKET_NAME             = aws_s3_bucket.job_images.bucket
-      SSM_PARAMETER_PATH      = "/${local.name_env}/api"
-      SSM_CONFIG_TTL_SECONDS  = tostring(var.api_ssm_config_ttl_seconds)
+      BUCKET_NAME                 = aws_s3_bucket.job_images.bucket
+      SSM_PARAMETER_PATH          = "/${local.name_env}/api"
       IMAGE_MOD_RUNTIME_SIGNATURE = sha256(join(",", [for k in sort(keys(aws_ssm_parameter.api_runtime)) : "${k}=${aws_ssm_parameter.api_runtime[k].value}"]))
     }
   }

@@ -17,4 +17,3 @@ github_branch         = "main"
 # Optional app tuning (defaults shown; omit to use defaults)
 # images_cdn_base_url = ""  # empty → use images_public_url
 # text_moderation_toxic_score_threshold = 0.65
-# api_ssm_config_ttl_seconds = 300  # Lambda SSM cache TTL; 0 = once per warm instance
