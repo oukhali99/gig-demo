@@ -10,14 +10,19 @@ import {
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import type { Job, UpdateJobInput, ListJobsQuery, ListJobsResult } from './types.js';
 
-const TABLE_NAME = process.env.JOBS_TABLE_NAME!;
-
 const client = new DynamoDBClient({});
+
+/** Read at call time so Lambdas that load SSM after import (e.g. image moderation) see the real table name. */
+function jobsTableName(): string {
+  const name = process.env.JOBS_TABLE_NAME;
+  if (!name) throw new Error('JOBS_TABLE_NAME is not set');
+  return name;
+}
 
 export async function createJob(job: Job): Promise<void> {
   await client.send(
     new PutItemCommand({
-      TableName: TABLE_NAME,
+      TableName: jobsTableName(),
       Item: marshall(job, { removeUndefinedValues: true }),
       ConditionExpression: 'attribute_not_exists(jobId)',
     })
@@ -27,7 +32,7 @@ export async function createJob(job: Job): Promise<void> {
 export async function getJob(jobId: string): Promise<Job | null> {
   const result = await client.send(
     new GetItemCommand({
-      TableName: TABLE_NAME,
+      TableName: jobsTableName(),
       Key: marshall({ jobId }),
     })
   );
@@ -79,7 +84,7 @@ export async function updateJob(
 
   const result = await client.send(
     new UpdateItemCommand({
-      TableName: TABLE_NAME,
+      TableName: jobsTableName(),
       Key: marshall({ jobId }),
       UpdateExpression: 'SET ' + updates.join(', '),
       ExpressionAttributeNames: Object.keys(names).length ? names : undefined,
@@ -94,7 +99,7 @@ export async function updateJob(
 export async function addJobImageKey(jobId: string, imageKey: string, updatedAt: string): Promise<Job | null> {
   const result = await client.send(
     new UpdateItemCommand({
-      TableName: TABLE_NAME,
+      TableName: jobsTableName(),
       Key: marshall({ jobId }),
       UpdateExpression: 'SET imageKeys = list_append(if_not_exists(imageKeys, :empty), :newKey), updatedAt = :updatedAt',
       ExpressionAttributeValues: marshall({
@@ -109,10 +114,35 @@ export async function addJobImageKey(jobId: string, imageKey: string, updatedAt:
   return unmarshall(result.Attributes) as Job;
 }
 
+export async function removeJobImageKey(jobId: string, imageKey: string, updatedAt: string): Promise<Job | null> {
+  const job = await getJob(jobId);
+  if (!job) return null;
+  const keys = job.imageKeys ?? [];
+  if (!keys.includes(imageKey)) return job;
+
+  const newKeys = keys.filter((k) => k !== imageKey);
+  const result = await client.send(
+    new UpdateItemCommand({
+      TableName: jobsTableName(),
+      Key: marshall({ jobId }),
+      UpdateExpression:
+        newKeys.length > 0
+          ? 'SET imageKeys = :keys, updatedAt = :updatedAt'
+          : 'REMOVE imageKeys SET updatedAt = :updatedAt',
+      ExpressionAttributeValues: marshall(
+        newKeys.length > 0 ? { ':keys': newKeys, ':updatedAt': updatedAt } : { ':updatedAt': updatedAt }
+      ),
+      ReturnValues: 'ALL_NEW',
+    })
+  );
+  if (!result.Attributes) return null;
+  return unmarshall(result.Attributes) as Job;
+}
+
 export async function deleteJob(jobId: string, clientId: string): Promise<boolean> {
   await client.send(
     new DeleteItemCommand({
-      TableName: TABLE_NAME,
+      TableName: jobsTableName(),
       Key: marshall({ jobId }),
       ConditionExpression: '#status = :draft AND clientId = :cid',
       ExpressionAttributeNames: { '#status': 'status' },
@@ -139,7 +169,7 @@ export async function updateJobStatus(
   }
   const result = await client.send(
     new UpdateItemCommand({
-      TableName: TABLE_NAME,
+      TableName: jobsTableName(),
       Key: marshall({ jobId }),
       UpdateExpression: 'SET ' + updates.join(', '),
       ExpressionAttributeNames: { '#status': 'status' },
@@ -161,7 +191,7 @@ export async function listJobs(query: ListJobsQuery): Promise<ListJobsResult> {
   const exprValues: Record<string, unknown> = { ':status': status };
 
   const queryInput: QueryCommandInput = {
-    TableName: TABLE_NAME,
+    TableName: jobsTableName(),
     IndexName: indexName,
     KeyConditionExpression: keyCondition,
     ExpressionAttributeNames: exprNames,
@@ -201,7 +231,7 @@ export async function listJobs(query: ListJobsQuery): Promise<ListJobsResult> {
 export async function listJobsByClient(clientId: string, limit?: number, cursor?: string): Promise<ListJobsResult> {
   const pageSize = Math.min(limit ?? 20, 100);
   const queryInput: QueryCommandInput = {
-    TableName: TABLE_NAME,
+    TableName: jobsTableName(),
     IndexName: 'clientId-createdAt-index',
     KeyConditionExpression: 'clientId = :cid',
     ExpressionAttributeValues: marshall({ ':cid': clientId }),

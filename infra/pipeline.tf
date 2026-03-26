@@ -149,6 +149,18 @@ resource "aws_codebuild_project" "deploy" {
       name  = "TF_VAR_text_moderation_toxic_score_threshold"
       value = tostring(var.text_moderation_toxic_score_threshold)
     }
+    environment_variable {
+      name  = "TF_VAR_image_moderation_rekognition_min_confidence"
+      value = tostring(var.image_moderation_rekognition_min_confidence)
+    }
+    environment_variable {
+      name  = "TF_VAR_image_moderation_manual_review_min_confidence"
+      value = tostring(var.image_moderation_manual_review_min_confidence)
+    }
+    environment_variable {
+      name  = "TF_VAR_image_moderation_auto_reject_min_confidence"
+      value = tostring(var.image_moderation_auto_reject_min_confidence)
+    }
   }
 
   logs_config {

@@ -15,11 +15,80 @@ const PRESIGN_PUT_EXPIRES = 300;
 const s3 = new S3Client({});
 const rekognition = new RekognitionClient({});
 
-const MODERATION_CONFIDENCE_THRESHOLD = 50;
 const MODERATION_TAG_KEY = 'moderation';
-const MODERATION_APPROVED = 'approved';
+export const MODERATION_APPROVED = 'approved';
+export const MODERATION_PENDING_REVIEW = 'pending_review';
 
-export type ImageModerationState = 'approved' | 'pending';
+export type ImageModerationState = 'approved' | 'pending_review' | 'pending';
+
+export type ImageModerationDecision = 'approve' | 'pending_review' | 'reject';
+
+export type ImageModerationOutcome = {
+  decision: ImageModerationDecision;
+  reason?: string;
+  topLabel?: string;
+  maxConfidence?: number;
+};
+
+function parseConfidenceThreshold(name: string, defaultVal: number, min: number, max: number): number {
+  const n = Number(process.env[name]);
+  if (!Number.isFinite(n)) return defaultVal;
+  return Math.min(max, Math.max(min, n));
+}
+
+/** Rekognition MinConfidence (0–100). Labels below this are not returned. */
+export function imageModerationRekognitionMinConfidence(): number {
+  return parseConfidenceThreshold('IMAGE_MODERATION_REKOGNITION_MIN_CONFIDENCE', 40, 1, 99);
+}
+
+/** Inclusive lower bound of the manual-review band (0–100). Must be below auto-reject in Terraform. */
+export function imageModerationManualReviewMinConfidence(): number {
+  return parseConfidenceThreshold('IMAGE_MODERATION_MANUAL_REVIEW_MIN_CONFIDENCE', 55, 0, 100);
+}
+
+/** Inclusive lower bound for auto-rejection (0–100). */
+export function imageModerationAutoRejectMinConfidence(): number {
+  return parseConfidenceThreshold('IMAGE_MODERATION_AUTO_REJECT_MIN_CONFIDENCE', 75, 1, 100);
+}
+
+/**
+ * Classifies Rekognition moderation labels using configured thresholds on max label confidence (0–100).
+ */
+export function classifyImageModerationFromLabels(
+  labels: { Name?: string; Confidence?: number }[],
+  manualReviewMin: number,
+  autoRejectMin: number
+): ImageModerationOutcome {
+  if (labels.length === 0) {
+    return { decision: 'approve' };
+  }
+  let maxConf = 0;
+  let topName: string | undefined;
+  for (const l of labels) {
+    const c = l.Confidence ?? 0;
+    if (c > maxConf) {
+      maxConf = c;
+      topName = l.Name;
+    }
+  }
+  if (maxConf >= autoRejectMin) {
+    return {
+      decision: 'reject',
+      topLabel: topName,
+      maxConfidence: maxConf,
+      reason: `Image moderation: ${topName ?? 'Inappropriate content'} (confidence ${maxConf.toFixed(0)}%). Auto-rejected.`,
+    };
+  }
+  if (maxConf >= manualReviewMin) {
+    return {
+      decision: 'pending_review',
+      topLabel: topName,
+      maxConfidence: maxConf,
+      reason: `Image moderation: ${topName ?? 'Flagged content'} (confidence ${maxConf.toFixed(0)}%) pending manual review.`,
+    };
+  }
+  return { decision: 'approve', topLabel: topName, maxConfidence: maxConf };
+}
 
 export function getPresignedPutUrl(key: string, contentType: string): Promise<string> {
   return getSignedUrl(
@@ -63,16 +132,19 @@ export async function getObjectModerationState(key: string): Promise<ImageModera
     const out = await s3.send(new GetObjectTaggingCommand({ Bucket: BUCKET, Key: key }));
     const value = out.TagSet?.find((t) => t.Key === MODERATION_TAG_KEY)?.Value;
     if (value === MODERATION_APPROVED) return 'approved';
+    if (value === MODERATION_PENDING_REVIEW) return 'pending_review';
     return 'pending';
   } catch {
     return 'pending';
   }
 }
 
+export type ModerationTagValue = typeof MODERATION_APPROVED | typeof MODERATION_PENDING_REVIEW;
+
 export async function setObjectModerationStateInBucket(
   bucket: string,
   key: string,
-  state: Extract<ImageModerationState, 'approved'>
+  state: ModerationTagValue
 ): Promise<void> {
   const current = await s3.send(new GetObjectTaggingCommand({ Bucket: bucket, Key: key })).catch(() => ({ TagSet: [] }));
   const others = (current.TagSet ?? []).filter((t) => t.Key !== MODERATION_TAG_KEY);
@@ -85,22 +157,26 @@ export async function setObjectModerationStateInBucket(
   );
 }
 
-export async function moderateImage(key: string): Promise<{ allowed: boolean; reason?: string }> {
+export async function setObjectModerationTag(key: string, state: ModerationTagValue): Promise<void> {
+  await setObjectModerationStateInBucket(BUCKET, key, state);
+}
+
+export async function moderateImage(key: string): Promise<ImageModerationOutcome> {
   return moderateImageInBucket(BUCKET, key);
 }
 
-export async function moderateImageInBucket(bucket: string, key: string): Promise<{ allowed: boolean; reason?: string }> {
+export async function moderateImageInBucket(bucket: string, key: string): Promise<ImageModerationOutcome> {
+  const rekMin = imageModerationRekognitionMinConfidence();
+  const manualMin = imageModerationManualReviewMinConfidence();
+  const autoRejectMin = imageModerationAutoRejectMinConfidence();
+  const effectiveManual = manualMin < autoRejectMin ? manualMin : Math.max(0, autoRejectMin - 1);
+
   const result = await rekognition.send(
     new DetectModerationLabelsCommand({
       Image: { S3Object: { Bucket: bucket, Name: key } },
-      MinConfidence: MODERATION_CONFIDENCE_THRESHOLD,
+      MinConfidence: rekMin,
     })
   );
   const labels = result.ModerationLabels ?? [];
-  if (labels.length === 0) return { allowed: true };
-  const top = labels[0];
-  return {
-    allowed: false,
-    reason: `Image moderation: ${top.Name ?? 'Inappropriate content'} (confidence ${top.Confidence?.toFixed(0) ?? 0}%). Please use appropriate images only.`,
-  };
+  return classifyImageModerationFromLabels(labels, effectiveManual, autoRejectMin);
 }

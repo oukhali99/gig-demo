@@ -17,3 +17,7 @@ github_branch         = "main"
 # Optional app tuning (defaults shown; omit to use defaults)
 # images_cdn_base_url = ""  # empty → use images_public_url
 # text_moderation_toxic_score_threshold = 0.65
+# image_moderation_rekognition_min_confidence   = 40
+# image_moderation_manual_review_min_confidence = 55
+# image_moderation_auto_reject_min_confidence   = 75
+# image_moderation_admin_api_key = "long-random-secret"

@@ -9,13 +9,18 @@ import {
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import type { Booking, BookingStatus, ListBookingsQuery, ListBookingsResult } from './types.js';
 
-const TABLE_NAME = process.env.BOOKINGS_TABLE_NAME!;
 const client = new DynamoDBClient({});
+
+function bookingsTableName(): string {
+  const name = process.env.BOOKINGS_TABLE_NAME;
+  if (!name) throw new Error('BOOKINGS_TABLE_NAME is not set');
+  return name;
+}
 
 export async function getBookingByIdempotencyKey(idempotencyKey: string): Promise<Booking | null> {
   const result = await client.send(
     new QueryCommand({
-      TableName: TABLE_NAME,
+      TableName: bookingsTableName(),
       IndexName: 'idempotencyKey-index',
       KeyConditionExpression: 'idempotencyKey = :key',
       ExpressionAttributeValues: marshall({ ':key': idempotencyKey }),
@@ -40,7 +45,7 @@ export async function createBooking(booking: Booking): Promise<void> {
 
   await client.send(
     new PutItemCommand({
-      TableName: TABLE_NAME,
+      TableName: bookingsTableName(),
       Item: marshall(item, { removeUndefinedValues: true }),
       ConditionExpression: 'attribute_not_exists(bookingId)',
     })
@@ -50,7 +55,7 @@ export async function createBooking(booking: Booking): Promise<void> {
 export async function getBooking(bookingId: string): Promise<Booking | null> {
   const result = await client.send(
     new GetItemCommand({
-      TableName: TABLE_NAME,
+      TableName: bookingsTableName(),
       Key: marshall({ bookingId }),
     })
   );
@@ -65,7 +70,7 @@ export async function updateBookingStatus(
 ): Promise<Booking | null> {
   const result = await client.send(
     new UpdateItemCommand({
-      TableName: TABLE_NAME,
+      TableName: bookingsTableName(),
       Key: marshall({ bookingId }),
       UpdateExpression: 'SET #status = :status, updatedAt = :updatedAt',
       ExpressionAttributeNames: { '#status': 'status' },
@@ -80,7 +85,7 @@ export async function updateBookingStatus(
 export async function addBookingImageKey(bookingId: string, imageKey: string, updatedAt: string): Promise<Booking | null> {
   const result = await client.send(
     new UpdateItemCommand({
-      TableName: TABLE_NAME,
+      TableName: bookingsTableName(),
       Key: marshall({ bookingId }),
       UpdateExpression: 'SET imageKeys = list_append(if_not_exists(imageKeys, :empty), :newKey), updatedAt = :updatedAt',
       ExpressionAttributeValues: marshall({
@@ -88,6 +93,35 @@ export async function addBookingImageKey(bookingId: string, imageKey: string, up
         ':newKey': [imageKey],
         ':updatedAt': updatedAt,
       }),
+      ReturnValues: 'ALL_NEW',
+    })
+  );
+  if (!result.Attributes) return null;
+  return unmarshall(result.Attributes) as Booking;
+}
+
+export async function removeBookingImageKey(
+  bookingId: string,
+  imageKey: string,
+  updatedAt: string
+): Promise<Booking | null> {
+  const booking = await getBooking(bookingId);
+  if (!booking) return null;
+  const keys = booking.imageKeys ?? [];
+  if (!keys.includes(imageKey)) return booking;
+
+  const newKeys = keys.filter((k) => k !== imageKey);
+  const result = await client.send(
+    new UpdateItemCommand({
+      TableName: bookingsTableName(),
+      Key: marshall({ bookingId }),
+      UpdateExpression:
+        newKeys.length > 0
+          ? 'SET imageKeys = :keys, updatedAt = :updatedAt'
+          : 'REMOVE imageKeys SET updatedAt = :updatedAt',
+      ExpressionAttributeValues: marshall(
+        newKeys.length > 0 ? { ':keys': newKeys, ':updatedAt': updatedAt } : { ':updatedAt': updatedAt }
+      ),
       ReturnValues: 'ALL_NEW',
     })
   );
@@ -125,7 +159,7 @@ export async function listBookings(query: ListBookingsQuery): Promise<ListBookin
   const limit = Math.min(query.limit ?? 20, 100);
 
   const queryInput: QueryCommandInput = {
-    TableName: TABLE_NAME,
+    TableName: bookingsTableName(),
     IndexName: indexName,
     KeyConditionExpression: keyCondition,
     ExpressionAttributeNames: Object.keys(exprNames).length ? exprNames : undefined,

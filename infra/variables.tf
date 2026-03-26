@@ -142,3 +142,43 @@ variable "text_moderation_toxic_score_threshold" {
   }
 }
 
+variable "image_moderation_rekognition_min_confidence" {
+  description = "Rekognition DetectModerationLabels MinConfidence (1–99). Stored in SSM (IMAGE_MODERATION_REKOGNITION_MIN_CONFIDENCE)."
+  type        = number
+  default     = 40
+
+  validation {
+    condition     = var.image_moderation_rekognition_min_confidence >= 1 && var.image_moderation_rekognition_min_confidence <= 99
+    error_message = "image_moderation_rekognition_min_confidence must be between 1 and 99."
+  }
+}
+
+variable "image_moderation_manual_review_min_confidence" {
+  description = "Max label confidence in this band (inclusive) queues manual review; below auto-reject. SSM: IMAGE_MODERATION_MANUAL_REVIEW_MIN_CONFIDENCE."
+  type        = number
+  default     = 55
+
+  validation {
+    condition     = var.image_moderation_manual_review_min_confidence >= 0 && var.image_moderation_manual_review_min_confidence <= 100
+    error_message = "image_moderation_manual_review_min_confidence must be between 0 and 100."
+  }
+}
+
+variable "image_moderation_auto_reject_min_confidence" {
+  description = "Max label confidence at or above this auto-deletes the object. SSM: IMAGE_MODERATION_AUTO_REJECT_MIN_CONFIDENCE."
+  type        = number
+  default     = 75
+
+  validation {
+    condition     = var.image_moderation_auto_reject_min_confidence >= 1 && var.image_moderation_auto_reject_min_confidence <= 100
+    error_message = "image_moderation_auto_reject_min_confidence must be between 1 and 100."
+  }
+}
+
+variable "image_moderation_admin_api_key" {
+  description = "Shared secret for POST /moderation/images/* (header X-Image-Moderation-Admin-Key). Empty or whitespace: no SSM parameter; moderator actions disabled (403)."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+

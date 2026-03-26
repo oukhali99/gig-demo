@@ -33,7 +33,8 @@ Terraform outputs (`infra/outputs.tf`):
   - **Comprehend** for text toxicity checks.
   - **Rekognition** for image moderation checks.
 - S3 image uploads (`jobs/` and `bookings/` prefixes) trigger a dedicated Lambda (`image-moderation-handler`) to moderate new objects immediately after upload.
-- Image keys are attached immediately after upload; image URL endpoints only return URLs for moderation-approved objects and return `null` for pending/removed ones.
+- Image keys are attached immediately after upload; image URL endpoints only return URLs for moderation-approved objects and return `null` for pending, manual-review (`moderation=pending_review`), or removed objects.
+- Borderline Rekognition scores use three thresholds from SSM (see `05-api-contracts.md`): low confidence can auto-approve, mid band tags `pending_review` and logs `image_moderation_pending_review` with the object key, high confidence auto-deletes.
 - Raw S3 image reads are blocked for viewers: `job_images` bucket serves reads via CloudFront OAC only, and only when object tag `moderation=approved`.
 - Both Lambda functions (`api` and `image-moderation-handler`) receive `SSM_PARAMETER_PATH` and load parameters from SSM Parameter Store on each invocation (no in-process TTL cache).
 - Keep model thresholds and moderation behavior documented when changed.

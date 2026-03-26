@@ -8,6 +8,7 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 
 - **Protected routes**: `Authorization: Bearer <token>` (Cognito **access** or **ID** token per API Gateway JWT authorizer configuration).
 - **Public routes** (no JWT on API Gateway): `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`.
+- **Operator routes** (no JWT): `POST /moderation/images/approve` and `POST /moderation/images/reject` require header `X-Image-Moderation-Admin-Key` matching SSM `IMAGE_MODERATION_ADMIN_API_KEY` (set via Terraform `image_moderation_admin_api_key`). If the key is empty in config, these routes return `403`.
 
 ---
 
@@ -35,7 +36,7 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 | POST | `/jobs/{id}/publish` | Publish draft (owner). |
 | POST | `/jobs/{id}/close` | Close draft or published job (owner). Body optional `reason`. |
 | POST | `/jobs/{id}/images/upload-url` | Single API call for upload+attach. Reserves a key and adds it to job `imageKeys`, then returns presigned PUT URL. Body optional `contentType`. Upload triggers async Lambda moderation on S3 object create. |
-| GET | `/jobs/{id}/images/urls` | CDN image URLs (not S3 presigned GET). Query: `keys=key1,key2`. Published or owner. Returns `{ urls: { "<key>": "<url-or-null>" } }`; `null` means not approved yet or removed by moderation. |
+| GET | `/jobs/{id}/images/urls` | CDN image URLs (not S3 presigned GET). Query: `keys=key1,key2`. Published or owner. Returns `{ urls: { "<key>": "<url-or-null>" } }`; `null` means pending AI check, awaiting manual review, or removed by moderation. |
 
 ### Bookings
 
@@ -49,7 +50,16 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 | POST | `/bookings/{id}/complete` | Client or worker completes → payment release hook. |
 | POST | `/bookings/{id}/cancel` | Client or worker cancels. Body optional `reason` → payment refund hook. |
 | POST | `/bookings/{id}/images/upload-url` | Single API call for upload+attach. Reserves a key and adds it to booking `imageKeys`, then returns presigned PUT URL. Upload triggers async Lambda moderation on S3 object create. |
-| GET | `/bookings/{id}/images/urls` | CDN image URLs. Query: `keys=`. Returns `url-or-null` per key; `null` means not approved yet or removed by moderation. |
+| GET | `/bookings/{id}/images/urls` | CDN image URLs. Query: `keys=`. Returns `url-or-null` per key; `null` means pending, in manual review, or removed by moderation. |
+
+### Image moderation (operators)
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/moderation/images/approve` | Body: `{ "key": "<s3 object key>" }` (must be under `jobs/` or `bookings/`). Sets tag `moderation=approved` when the object is in manual review. Header `X-Image-Moderation-Admin-Key` required. |
+| POST | `/moderation/images/reject` | Same body and header. Deletes the object when it is in manual review (same outcome as auto-reject for bad scores). |
+
+Rekognition label confidence bands (0–100) are configurable via Terraform / SSM: `IMAGE_MODERATION_REKOGNITION_MIN_CONFIDENCE`, `IMAGE_MODERATION_MANUAL_REVIEW_MIN_CONFIDENCE`, `IMAGE_MODERATION_AUTO_REJECT_MIN_CONFIDENCE`. Defaults: 40 / 55 / 75 — max label confidence below the manual threshold auto-approves; between manual and auto-reject queues for operator action; at or above auto-reject deletes the upload.
 
 ### Payments
 
