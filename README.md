@@ -6,6 +6,14 @@ The stack is entirely managed AWS services (no servers to run). Splitting into m
 
 **Documentation**: [docs/README.md](docs/README.md) — product, architecture, API contracts, sequences, flowcharts, and ADRs.
 
+## AWS architecture
+
+![AWS Architecture](docs/AWS%20Architecture.drawio.svg)
+
+**Source:** [docs/AWS Architecture.drawio](docs/AWS%20Architecture.drawio) — edit in **[diagrams.net](https://app.diagrams.net/)**; after changes, **File → Export as → SVG…** → `docs/AWS Architecture.drawio.svg` so this image stays current. Icons use the built-in AWS shape library (`mxgraph.aws4.*`).
+
+**Terraform environments** (one module tree, backend `reconfigure`, CI vs local): [docs/10-terraform-environments-and-ci.md](docs/10-terraform-environments-and-ci.md).
+
 ## AI tools used
 
 - **Cursor AI (Agent mode)** — used to accelerate implementation, refactors, and doc updates.

@@ -17,6 +17,8 @@ Product, architecture, contracts, and decisions for this repo. Start here, then 
 | 07 | [07-data-and-persistence.md](07-data-and-persistence.md) | DynamoDB tables, S3, identifiers. |
 | 08 | [08-security-and-compliance.md](08-security-and-compliance.md) | Auth, API exposure, secrets, encryption. |
 | 09 | [09-operations-and-observability.md](09-operations-and-observability.md) | Logging, metrics, deploy, resource groups. |
+| 10 | [10-terraform-environments-and-ci.md](10-terraform-environments-and-ci.md) | One Terraform root, dev/prod via backend re-init, CI vs local, draw.io diagram workflow. |
+| — | [AWS Architecture.drawio](AWS%20Architecture.drawio) / [AWS Architecture.drawio.svg](AWS%20Architecture.drawio.svg) | AWS architecture diagram (draw.io source + SVG for README). |
 | — | [sequence-booking-payment.md](sequence-booking-payment.md) | Sequence: booking lifecycle and payment side effects. |
 | — | [flow-booking-lifecycle.md](flow-booking-lifecycle.md) | State diagram and flowcharts for bookings. |
 | — | [adr/](adr/) | Architecture decision records ([index](adr/README.md)). |

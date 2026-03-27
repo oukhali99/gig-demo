@@ -1,5 +1,7 @@
 # Architecture overview
 
+For an **AWS service diagram** with official-style icons (draw.io source + optional SVG export for the repo README), see [AWS Architecture.drawio](AWS%20Architecture.drawio) and [10-terraform-environments-and-ci.md](10-terraform-environments-and-ci.md).
+
 ## High-level design
 
 Clients use the **Vite/React** SPA (or any HTTP client). All traffic goes through **API Gateway (HTTP API)** with a **JWT authorizer** (Cognito). A single **Lambda** function handles every route and calls domain code under `app/api/src/`. **DynamoDB** stores domain data in separate tables; **S3** stores images; **Rekognition** moderates uploads. There is **no EventBridge/SNS** bus: after state changes, the app builds **event envelopes** and writes **notification rows** in process.

@@ -153,18 +153,62 @@ export default function JobDetail() {
           <div style={{ marginTop: '0.5rem' }}>
             <strong>Photos</strong>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem' }}>
-              {job.imageKeys!.map((key) => (
-                imageUrls[key] ? (
-                  <img
+              {job.imageKeys!.map((key) => {
+                const url = imageUrls[key];
+                if (url) {
+                  return (
+                    <img
+                      key={key}
+                      src={url}
+                      alt="Job"
+                      style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 4 }}
+                    />
+                  );
+                }
+                if (url === null) {
+                  return (
+                    <div
+                      key={key}
+                      style={{
+                        width: 120,
+                        height: 120,
+                        background: '#f0f0f0',
+                        borderRadius: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        padding: '0.35rem',
+                        fontSize: '0.75rem',
+                        color: '#555',
+                        lineHeight: 1.25,
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      Awaiting moderation
+                    </div>
+                  );
+                }
+                return (
+                  <div
                     key={key}
-                    src={imageUrls[key]}
-                    alt="Job"
-                    style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 4 }}
-                  />
-                ) : (
-                  <div key={key} style={{ width: 120, height: 120, background: '#eee', borderRadius: 4 }} title="Loading…" />
-                )
-              ))}
+                    style={{
+                      width: 120,
+                      height: 120,
+                      background: '#eee',
+                      borderRadius: 4,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.75rem',
+                      color: '#666',
+                    }}
+                    title="Loading…"
+                  >
+                    Loading…
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
