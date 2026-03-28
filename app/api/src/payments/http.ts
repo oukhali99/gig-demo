@@ -115,6 +115,18 @@ function canAccessPayment(sub: string, payment: { clientId?: string; workerId?: 
   return true;
 }
 
+async function handleListPayments(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const sub = getSubFromEvent(event);
+  if (!sub) return json(401, { code: 'UNAUTHORIZED', message: 'Authentication required' });
+
+  const raw = event.queryStringParameters?.limit;
+  const parsed = raw ? parseInt(raw, 10) : 50;
+  const limit = Number.isFinite(parsed) ? parsed : 50;
+
+  const items = await repo.listPaymentsForParty(sub, limit);
+  return json(200, { items });
+}
+
 async function handleGetPayment(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
   const paymentId = getPaymentIdFromPath(event);
   if (!paymentId) return json(400, { errors: [{ field: 'id', message: 'Payment ID required' }] });
@@ -189,6 +201,7 @@ export async function handlePayments(event: APIGatewayProxyEventV2): Promise<API
 
   let handlerFn: RouteHandler | undefined;
   if (method === 'POST' && path === '/payments/hold') handlerFn = handleCreateHold;
+  else if (method === 'GET' && path === '/payments') handlerFn = handleListPayments;
   else if (method === 'GET' && path.startsWith('/payments/')) {
     const suffix = path.slice('/payments/'.length);
     if (suffix && !suffix.includes('/')) handlerFn = handleGetPayment;

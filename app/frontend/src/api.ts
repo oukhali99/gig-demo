@@ -219,3 +219,29 @@ export async function completeBooking(id: string): Promise<Booking> {
 export async function cancelBooking(id: string): Promise<Booking> {
   return request<Booking>(`/bookings/${id}/cancel`, { method: 'POST' });
 }
+
+// --- Payments ---
+export type PaymentStatus = 'hold_created' | 'released' | 'refunded';
+
+export interface Payment {
+  paymentId: string;
+  bookingId: string;
+  amount: string;
+  currency: string;
+  status: PaymentStatus;
+  createdAt: string;
+  updatedAt: string;
+  clientId?: string;
+  workerId?: string;
+}
+
+export interface ListPaymentsResponse {
+  items: Payment[];
+}
+
+export async function listPayments(params?: { limit?: number }): Promise<ListPaymentsResponse> {
+  const sp = new URLSearchParams();
+  if (params?.limit != null) sp.set('limit', String(params.limit));
+  const q = sp.toString();
+  return request<ListPaymentsResponse>(`/payments${q ? `?${q}` : ''}`);
+}

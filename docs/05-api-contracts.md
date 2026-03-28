@@ -66,6 +66,7 @@ Rekognition label confidence bands (0–100) are configurable via Terraform / SS
 | Method | Path | Purpose |
 |--------|------|---------|
 | POST | `/payments/hold` | Body: `bookingId`, `amount`, optional `currency`. **Header `Idempotency-Key` required.** Caller must be booking party. |
+| GET | `/payments` | List payments for the current user (as client or worker). Query: optional `limit` (default 50, max 100). Response `{ items: Payment[] }` sorted by `createdAt` descending. |
 | GET | `/payments/{id}` | Get payment (party only). |
 | POST | `/payments/{id}/release` | Client releases hold. |
 | POST | `/payments/{id}/refund` | Refund from `hold_created` or `released`. Body optional `reason`. |

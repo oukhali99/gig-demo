@@ -5,6 +5,7 @@ import JobDetail from './JobDetail';
 import CreateJob from './CreateJob';
 import DraftList from './DraftList';
 import BookingsList from './BookingsList';
+import PaymentsList from './PaymentsList';
 import Login from './Login';
 import Register from './Register';
 
@@ -18,6 +19,7 @@ function Nav() {
         <>
           <Link to="/drafts">Drafts</Link>
           <Link to="/bookings">My bookings</Link>
+          <Link to="/payments">Payments</Link>
           <Link to="/jobs/new">Post a job</Link>
           <span style={{ marginLeft: 'auto' }}>{auth.user.email ?? auth.user.sub}</span>
           <button type="button" className="secondary" onClick={logout} style={{ marginLeft: '0.5rem' }}>Logout</button>
@@ -51,6 +53,7 @@ export default function App() {
           <Route path="/jobs/new" element={<RequireAuth><CreateJob /></RequireAuth>} />
           <Route path="/drafts" element={<RequireAuth><DraftList /></RequireAuth>} />
           <Route path="/bookings" element={<RequireAuth><BookingsList /></RequireAuth>} />
+          <Route path="/payments" element={<RequireAuth><PaymentsList /></RequireAuth>} />
           <Route path="/jobs/:id" element={<JobDetail />} />
         </Routes>
       </main>

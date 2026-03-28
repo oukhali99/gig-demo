@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "build:lambda": "bash scripts/build-lambda.sh",
+    "seed:dummy": "node scripts/seed-dummy-data.mjs",
     "test": "echo \"No tests yet\""
   },
   "dependencies": {

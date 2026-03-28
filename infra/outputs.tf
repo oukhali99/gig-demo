@@ -92,3 +92,19 @@ output "codebuild_project_name" {
   description = "CodeBuild deploy project name"
   value       = aws_codebuild_project.deploy.name
 }
+
+output "aws_region" {
+  description = "AWS region for this stack (for scripts / CLI)"
+  value       = var.aws_region
+}
+
+output "dynamodb_table_names" {
+  description = "Names for scripts (e.g. yarn seed:dummy env vars)"
+  value = {
+    jobs          = aws_dynamodb_table.jobs.name
+    bookings      = aws_dynamodb_table.bookings.name
+    payments      = aws_dynamodb_table.payments.name
+    notifications = aws_dynamodb_table.notifications.name
+    reviews       = aws_dynamodb_table.reviews.name
+  }
+}

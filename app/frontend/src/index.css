@@ -85,4 +85,7 @@ button.secondary:hover {
 .badge.in_progress { background: #fff3cd; color: #664d03; }
 .badge.completed { background: #e2e3e5; color: #41464b; }
 .badge.cancelled { background: #f8d7da; color: #842029; }
+.badge.hold_created { background: #cfe2ff; color: #084298; }
+.badge.released { background: #d1e7dd; color: #0a3622; }
+.badge.refunded { background: #e2e3e5; color: #41464b; }
 .error { color: #b02a37; margin-top: 0.5rem; }

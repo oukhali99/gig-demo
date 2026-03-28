@@ -112,6 +112,14 @@ resource "aws_dynamodb_table" "payments" {
     name = "idempotencyKey"
     type = "S"
   }
+  attribute {
+    name = "clientId"
+    type = "S"
+  }
+  attribute {
+    name = "workerId"
+    type = "S"
+  }
 
   global_secondary_index {
     name            = "bookingId-createdAt-index"
@@ -122,6 +130,18 @@ resource "aws_dynamodb_table" "payments" {
   global_secondary_index {
     name            = "idempotencyKey-index"
     hash_key        = "idempotencyKey"
+    projection_type = "ALL"
+  }
+  global_secondary_index {
+    name            = "clientId-createdAt-index"
+    hash_key        = "clientId"
+    range_key       = "createdAt"
+    projection_type = "ALL"
+  }
+  global_secondary_index {
+    name            = "workerId-createdAt-index"
+    hash_key        = "workerId"
+    range_key       = "createdAt"
     projection_type = "ALL"
   }
 }

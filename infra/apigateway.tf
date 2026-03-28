@@ -58,6 +58,7 @@ locals {
     "POST /bookings/{id}/images/upload-url" = true
     "GET /bookings/{id}/images/urls"        = true
     "POST /payments/hold"                   = true
+    "GET /payments"                         = true
     "GET /payments/{id}"                    = true
     "POST /payments/{id}/release"           = true
     "POST /payments/{id}/refund"            = true

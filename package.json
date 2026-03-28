@@ -14,7 +14,9 @@
     "destroy:soft": "yarn run tf:init && cd infra && terraform destroy -auto-approve -input=false -var-file=terraform.prod.tfvars",
     "destroy": "bash scripts/empty-stack-s3-buckets.sh prod && yarn run destroy:soft",
     "destroy:dev:soft": "yarn run tf:init:dev && cd infra && terraform destroy -auto-approve -input=false -var-file=terraform.dev.tfvars",
-    "destroy:dev": "bash scripts/empty-stack-s3-buckets.sh dev && yarn run destroy:dev:soft"
+    "destroy:dev": "bash scripts/empty-stack-s3-buckets.sh dev && yarn run destroy:dev:soft",
+    "seed:dummy:dev": "yarn tf:init:dev && bash scripts/seed-dummy.sh dev",
+    "seed:dummy:prod": "yarn tf:init && bash scripts/seed-dummy.sh prod"
   },
   "workspaces": ["app/api", "app/frontend"]
 }
