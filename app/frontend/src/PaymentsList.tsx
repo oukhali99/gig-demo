@@ -17,45 +17,41 @@ export default function PaymentsList() {
       .finally(() => setLoading(false));
   }, [auth?.user?.sub]);
 
-  if (authLoading) return <p>Loading…</p>;
+  if (authLoading) return <p className="state-loading">Loading…</p>;
   if (!auth) return <Navigate to="/login" replace />;
-  if (loading) return <p>Loading payments…</p>;
+  if (loading) return <p className="state-loading">Loading payments…</p>;
   if (error) return <p className="error">Error: {error}</p>;
 
   return (
     <>
       <h1>Payments</h1>
-      <p style={{ color: '#666', marginBottom: '1rem' }}>
-        Holds and releases for bookings where you are the client or worker.
-      </p>
+      <p className="state-muted">Holds and releases for bookings where you are the client or worker.</p>
       {items.length === 0 ? (
         <p>No payments yet. Payments appear after a hold is placed on a confirmed or in-progress booking.</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
+        <div className="data-table-wrap">
+          <table className="data-table">
             <thead>
-              <tr style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>
-                <th style={{ padding: '0.5rem 0.75rem' }}>Status</th>
-                <th style={{ padding: '0.5rem 0.75rem' }}>Amount</th>
-                <th style={{ padding: '0.5rem 0.75rem' }}>Booking</th>
-                <th style={{ padding: '0.5rem 0.75rem' }}>Updated</th>
+              <tr>
+                <th>Status</th>
+                <th>Amount</th>
+                <th>Booking</th>
+                <th>Updated</th>
               </tr>
             </thead>
             <tbody>
               {items.map((p) => (
-                <tr key={p.paymentId} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '0.6rem 0.75rem' }}>
+                <tr key={p.paymentId}>
+                  <td>
                     <span className={`badge ${p.status}`}>{p.status}</span>
                   </td>
-                  <td style={{ padding: '0.6rem 0.75rem' }}>
+                  <td>
                     {p.amount} {p.currency}
                   </td>
-                  <td style={{ padding: '0.6rem 0.75rem', fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                  <td className="data-table-mono">
                     <Link to="/bookings">{p.bookingId.slice(0, 8)}…</Link>
                   </td>
-                  <td style={{ padding: '0.6rem 0.75rem', color: '#666' }}>
-                    {new Date(p.updatedAt).toLocaleString()}
-                  </td>
+                  <td className="data-table-muted">{new Date(p.updatedAt).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

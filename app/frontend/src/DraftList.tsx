@@ -17,9 +17,9 @@ export default function DraftList() {
       .finally(() => setLoading(false));
   }, [auth]);
 
-  if (authLoading) return <p>Loading…</p>;
+  if (authLoading) return <p className="state-loading">Loading…</p>;
   if (!auth) return <Navigate to="/login" replace />;
-  if (loading) return <p>Loading drafts…</p>;
+  if (loading) return <p className="state-loading">Loading drafts…</p>;
   if (error) return <p className="error">Error: {error}</p>;
 
   return (
@@ -29,13 +29,13 @@ export default function DraftList() {
       {drafts.length === 0 ? (
         <p>No drafts. <Link to="/jobs/new">Post a job</Link> to create one.</p>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
+        <ul className="job-list">
           {drafts.map((job) => (
-            <li key={job.jobId} className="card">
-              <Link to={`/jobs/${job.jobId}`} style={{ fontWeight: 600 }}>
+            <li key={job.jobId} className="card job-card">
+              <Link to={`/jobs/${job.jobId}`} className="job-card-title">
                 {job.title}
               </Link>
-              <p style={{ margin: '0.25rem 0 0', color: '#666', fontSize: '0.9rem' }}>
+              <p className="job-card-meta">
                 {job.location} · ${job.budget} · {job.scheduledAt.slice(0, 10)}
               </p>
             </li>

@@ -67,7 +67,7 @@ export default function JobDetail() {
       .catch(() => setMyBooking(null));
   }, [auth?.user?.sub, id, job?.status]);
 
-  if (authLoading) return <p>Loading…</p>;
+  if (authLoading) return <p className="state-loading">Loading…</p>;
   if (!auth) return <Navigate to="/login" replace />;
 
   const handlePublish = () => {
@@ -129,7 +129,7 @@ export default function JobDetail() {
   const isOwner = auth?.user?.sub && job?.clientId === auth.user.sub;
   const canBook = job?.status === 'published' && auth?.user?.sub && !isOwner;
 
-  if (loading) return <p>Loading…</p>;
+  if (loading) return <p className="state-loading">Loading…</p>;
   if (error) return <p className="error">Error: {error}</p>;
   if (!job) return <p>Job not found.</p>;
 
@@ -138,73 +138,31 @@ export default function JobDetail() {
       <p><Link to="/">← Back to jobs</Link></p>
       <div className="card">
         <span className={`badge ${job.status}`}>{job.status}</span>
-        <h1 style={{ marginTop: '0.5rem' }}>{job.title}</h1>
-        {posterEmail && (
-          <p style={{ margin: '0.25rem 0', fontSize: '0.9rem', color: '#666' }}>
-            Posted by {posterEmail}
-          </p>
-        )}
+        <h1 className="job-detail-title">{job.title}</h1>
+        {posterEmail && <p className="job-detail-byline">Posted by {posterEmail}</p>}
         <p><strong>Location:</strong> {job.location}</p>
         <p><strong>Budget:</strong> ${job.budget}</p>
         <p><strong>Scheduled:</strong> {job.scheduledAt.slice(0, 16).replace('T', ' ')}</p>
         <p><strong>Category:</strong> {job.categoryId}</p>
         <p>{job.description}</p>
         {(job.imageKeys?.length ?? 0) > 0 && (
-          <div style={{ marginTop: '0.5rem' }}>
-            <strong>Photos</strong>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem' }}>
+          <div className="job-photos">
+            <strong className="job-photo-label">Photos</strong>
+            <div className="job-photo-grid">
               {job.imageKeys!.map((key) => {
                 const url = imageUrls[key];
                 if (url) {
-                  return (
-                    <img
-                      key={key}
-                      src={url}
-                      alt="Job"
-                      style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 4 }}
-                    />
-                  );
+                  return <img key={key} src={url} alt="Job" className="job-thumb" />;
                 }
                 if (url === null) {
                   return (
-                    <div
-                      key={key}
-                      style={{
-                        width: 120,
-                        height: 120,
-                        background: '#f0f0f0',
-                        borderRadius: 4,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        textAlign: 'center',
-                        padding: '0.35rem',
-                        fontSize: '0.75rem',
-                        color: '#555',
-                        lineHeight: 1.25,
-                        boxSizing: 'border-box',
-                      }}
-                    >
+                    <div key={key} className="job-thumb-placeholder">
                       Awaiting moderation
                     </div>
                   );
                 }
                 return (
-                  <div
-                    key={key}
-                    style={{
-                      width: 120,
-                      height: 120,
-                      background: '#eee',
-                      borderRadius: 4,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.75rem',
-                      color: '#666',
-                    }}
-                    title="Loading…"
-                  >
+                  <div key={key} className="job-thumb-loading" title="Loading…">
                     Loading…
                   </div>
                 );
@@ -213,13 +171,13 @@ export default function JobDetail() {
           </div>
         )}
         {isOwner && (
-          <div style={{ marginTop: '0.5rem' }}>
+          <div className="job-upload-row">
             <input
               ref={fileInputRef}
               type="file"
               accept="image/jpeg,image/png,image/gif,image/webp"
               onChange={handleAddPhoto}
-              style={{ display: 'none' }}
+              className="visually-hidden"
             />
             <button
               type="button"
@@ -229,13 +187,11 @@ export default function JobDetail() {
             >
               {uploadingImage ? 'Uploading & checking…' : 'Add photo'}
             </button>
-            <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
-              Images are checked for appropriate content.
-            </span>
+            <span className="job-photo-hint">Images are checked for appropriate content.</span>
           </div>
         )}
         {job.status === 'draft' && (
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+          <div className="job-actions-row">
             <button onClick={handlePublish} disabled={publishing}>
               {publishing ? 'Publishing…' : 'Publish job'}
             </button>
@@ -245,7 +201,7 @@ export default function JobDetail() {
           </div>
         )}
         {canBook && (
-          <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #eee' }}>
+          <div className="job-book-section">
             {myBooking ? (
               <p>
                 <span className={`badge ${myBooking.status}`}>{myBooking.status}</span>

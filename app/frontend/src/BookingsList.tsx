@@ -77,41 +77,39 @@ export default function BookingsList() {
       .finally(() => setActing(null));
   };
 
-  if (authLoading) return <p>Loading…</p>;
+  if (authLoading) return <p className="state-loading">Loading…</p>;
   if (!auth) return <Navigate to="/login" replace />;
-  if (loading) return <p>Loading bookings…</p>;
+  if (loading) return <p className="state-loading">Loading bookings…</p>;
   if (error) return <p className="error">Error: {error}</p>;
 
   return (
     <>
       <h1>My bookings</h1>
-      <p style={{ color: '#666', marginBottom: '1rem' }}>
+      <p className="state-muted">
         Bookings where you are the worker. Confirm when the client accepts; complete when the job is done.
       </p>
       {bookings.length === 0 ? (
         <p>No bookings yet. <Link to="/">Browse jobs</Link> and book one.</p>
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
+        <ul className="booking-list">
           {bookings.map((b) => {
             const job = jobs[b.jobId];
             const isClient = auth.user?.sub === b.clientId;
             return (
-              <li key={b.bookingId} className="card" style={{ marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <li key={b.bookingId} className="card booking-card">
+                <div className="booking-card-row">
                   <div>
                     <span className={`badge ${b.status}`}>{b.status}</span>
                     {job ? (
-                      <Link to={`/jobs/${b.jobId}`} style={{ display: 'block', fontWeight: 600, marginTop: '0.25rem' }}>
+                      <Link to={`/jobs/${b.jobId}`} className="booking-job-link">
                         {job.title}
                       </Link>
                     ) : (
-                      <span style={{ display: 'block', marginTop: '0.25rem' }}>Job {b.jobId.slice(0, 8)}…</span>
+                      <span className="booking-job-fallback">Job {b.jobId.slice(0, 8)}…</span>
                     )}
-                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem', color: '#666' }}>
-                      Updated {new Date(b.updatedAt).toLocaleString()}
-                    </p>
+                    <p className="job-card-meta">Updated {new Date(b.updatedAt).toLocaleString()}</p>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <div className="booking-card-actions">
                     {b.status === 'requested' && isClient && (
                       <button
                         onClick={() => handleConfirm(b)}

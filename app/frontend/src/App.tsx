@@ -11,32 +11,73 @@ import Register from './Register';
 
 function Nav() {
   const { auth, loading, logout } = useAuth();
-  if (loading) return <nav>Loading…</nav>;
+  if (loading) {
+    return (
+      <header className="app-header">
+        <nav className="app-nav" aria-label="Main">
+          <div className="app-nav-inner">
+            <p className="state-loading">Loading…</p>
+          </div>
+        </nav>
+      </header>
+    );
+  }
   return (
-    <nav>
-      <Link to="/">Jobs</Link>
-      {auth ? (
-        <>
-          <Link to="/drafts">Drafts</Link>
-          <Link to="/bookings">My bookings</Link>
-          <Link to="/payments">Payments</Link>
-          <Link to="/jobs/new">Post a job</Link>
-          <span style={{ marginLeft: 'auto' }}>{auth.user.email ?? auth.user.sub}</span>
-          <button type="button" className="secondary" onClick={logout} style={{ marginLeft: '0.5rem' }}>Logout</button>
-        </>
-      ) : (
-        <>
-          <Link to="/login">Log in</Link>
-          <Link to="/register">Register</Link>
-        </>
-      )}
-    </nav>
+    <header className="app-header">
+      <nav className="app-nav" aria-label="Main">
+        <div className="app-nav-inner">
+          <Link to="/" className="app-brand">
+            Gigboard
+          </Link>
+          <div className="app-nav-cluster">
+            <Link to="/" className="app-nav-link">
+              Jobs
+            </Link>
+            {auth ? (
+              <>
+                <Link to="/drafts" className="app-nav-link">
+                  Drafts
+                </Link>
+                <Link to="/bookings" className="app-nav-link">
+                  My bookings
+                </Link>
+                <Link to="/payments" className="app-nav-link">
+                  Payments
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="app-nav-link">
+                  Log in
+                </Link>
+                <Link to="/register" className="app-nav-link">
+                  Register
+                </Link>
+              </>
+            )}
+          </div>
+          {auth ? (
+            <div className="app-nav-end">
+              <span className="app-nav-user" title={auth.user.email ?? auth.user.sub}>
+                {auth.user.email ?? auth.user.sub}
+              </span>
+              <Link to="/jobs/new" className="btn-nav-cta">
+                Post a job
+              </Link>
+              <button type="button" className="secondary" onClick={logout}>
+                Logout
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </nav>
+    </header>
   );
 }
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { auth, loading } = useAuth();
-  if (loading) return <p>Loading…</p>;
+  if (loading) return <p className="state-loading">Loading…</p>;
   if (!auth) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
@@ -45,7 +86,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Nav />
-      <main className="container">
+      <main className="container page-shell">
         <Routes>
           <Route path="/" element={<JobList />} />
           <Route path="/login" element={<Login />} />
