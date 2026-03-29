@@ -35,6 +35,10 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     const { handleModeration } = await import('./moderation/http.js');
     return handleModeration(event);
   }
+  if (path.startsWith('/assistant')) {
+    const { handleAssistant } = await import('./assistant/http.js');
+    return handleAssistant(event);
+  }
 
   return json(404, { code: 'NOT_FOUND', message: 'Route not found' });
 }

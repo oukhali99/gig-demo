@@ -182,3 +182,9 @@ variable "image_moderation_admin_api_key" {
   default     = ""
 }
 
+variable "assistant_bedrock_model_id" {
+  description = "Bedrock foundation model ID for POST /assistant/chat (SSM: ASSISTANT_BEDROCK_MODEL_ID). Must be enabled in the account/region."
+  type        = string
+  default     = "anthropic.claude-3-haiku-20240307-v1:0"
+}
+

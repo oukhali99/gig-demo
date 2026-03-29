@@ -150,3 +150,24 @@ resource "aws_iam_role_policy" "api_lambda_ssm" {
     ]
   })
 }
+
+resource "aws_iam_role_policy" "api_lambda_bedrock" {
+  name = "bedrock-assistant"
+  role = aws_iam_role.api_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream"
+        ]
+        Resource = [
+          "arn:${data.aws_partition.current.partition}:bedrock:${data.aws_region.current.name}::foundation-model/*"
+        ]
+      }
+    ]
+  })
+}

@@ -114,6 +114,52 @@ export async function createJob(body: CreateJobBody): Promise<Job> {
   return request<Job>('/jobs', { method: 'POST', body: JSON.stringify(body) });
 }
 
+export type AssistantPurpose = 'job_draft' | 'profile_bio';
+
+export interface AssistantChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface AssistantChatResponse {
+  message: { role: 'assistant'; content: string };
+}
+
+async function assistantChatErrorMessage(res: Response): Promise<string> {
+  const err = (await res.json().catch(() => ({}))) as {
+    message?: string;
+    errors?: { message?: string }[];
+  };
+  if (typeof err.message === 'string' && err.message) return err.message;
+  const first = err.errors?.[0]?.message;
+  if (typeof first === 'string' && first) return first;
+  return res.statusText || 'Request failed';
+}
+
+/** JWT required. `purpose` selects server system prompt; `context` is optional UI snapshot (not stored server-side). */
+export async function postAssistantChat(body: {
+  purpose: AssistantPurpose;
+  messages: AssistantChatMessage[];
+  context?: Record<string, unknown>;
+}): Promise<AssistantChatResponse> {
+  const url = BASE ? `${BASE}/assistant/chat` : '/assistant/chat';
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      purpose: body.purpose,
+      messages: body.messages,
+      ...(body.context !== undefined ? { context: body.context } : {}),
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(await assistantChatErrorMessage(res));
+  }
+  return res.json() as Promise<AssistantChatResponse>;
+}
+
 export async function publishJob(id: string): Promise<Job> {
   return request<Job>(`/jobs/${id}/publish`, { method: 'POST' });
 }

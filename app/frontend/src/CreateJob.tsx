@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AssistantChat } from './AssistantChat';
 import { createJob } from './api';
 
 export default function CreateJob() {
@@ -84,6 +85,49 @@ export default function CreateJob() {
           {submitting ? 'Creating…' : 'Create job'}
         </button>
       </form>
+      <AssistantChat
+        purpose="job_draft"
+        title="Writing assistant"
+        context={{
+          title: form.title,
+          categoryId: form.categoryId,
+          location: form.location,
+          description: form.description,
+          budget: form.budget,
+          scheduledAt: form.scheduledAt,
+        }}
+        applyActions={[
+          {
+            label: 'Append to description',
+            onApply: (text) =>
+              setForm((f) => ({
+                ...f,
+                description: f.description ? `${f.description.trim()}\n\n${text.trim()}` : text.trim(),
+              })),
+          },
+          {
+            label: 'Replace description',
+            onApply: (text) => {
+              if (window.confirm('Replace the entire description with the assistant’s last reply?')) {
+                setForm((f) => ({ ...f, description: text.trim() }));
+              }
+            },
+          },
+          {
+            label: 'Use for title',
+            onApply: (text) => {
+              const line = text.trim().split('\n')[0]?.slice(0, 200) ?? '';
+              if (!line) return;
+              setForm((f) => {
+                if (f.title.trim() && !window.confirm('Replace the current title with a line from the assistant’s reply?')) {
+                  return f;
+                }
+                return { ...f, title: line };
+              });
+            },
+          },
+        ]}
+      />
     </>
   );
 }
