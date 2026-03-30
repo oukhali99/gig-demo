@@ -20,4 +20,3 @@ github_branch         = "main"
 # image_moderation_rekognition_min_confidence   = 40
 # image_moderation_manual_review_min_confidence = 55
 # image_moderation_auto_reject_min_confidence   = 75
-# image_moderation_admin_api_key = "long-random-secret"

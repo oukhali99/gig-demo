@@ -956,6 +956,53 @@ button.secondary:hover:not(:disabled) {
   border-color: var(--color-accent-hover);
 }
 
+.admin-prefix-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.admin-prefix-toggle button {
+  margin-top: 0;
+}
+
+.admin-moderation-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.admin-moderation-item {
+  margin-bottom: 0.75rem;
+}
+
+.admin-moderation-key {
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.admin-moderation-meta {
+  margin-top: 0.35rem;
+}
+
+.admin-moderation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.admin-moderation-actions button {
+  margin-top: 0;
+}
+
+.admin-moderation-resource-link {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 640px) {
   .assistant-panel {
     left: 0;

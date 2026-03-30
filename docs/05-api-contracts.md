@@ -8,7 +8,7 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 
 - **Protected routes**: `Authorization: Bearer <token>` (Cognito **access** or **ID** token per API Gateway JWT authorizer configuration).
 - **Public routes** (no JWT on API Gateway): `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`.
-- **Operator routes** (no JWT): `POST /moderation/images/approve` and `POST /moderation/images/reject` require header `X-Image-Moderation-Admin-Key` matching SSM `IMAGE_MODERATION_ADMIN_API_KEY` (set via Terraform `image_moderation_admin_api_key`). If the key is empty in config, these routes return `403`.
+- **Platform admin**: Cognito custom attribute **`custom:role`** (string). When trimmed it equals **`admin`**, the user may call **image moderation** routes under `/admin/moderation/*` (JWT required). The user pool app client must include `custom:role` in **read attributes** so the claim appears on the **ID token** (required for the JWT authorizer and `GET /auth/me`). Admins are created like any other user; set `custom:role` to `admin` in the Cognito console or via `AdminUpdateUserAttributes`. There is no self-signup path to admin. After changing attributes or client settings, users need a **new sign-in** (or token refresh that reissues the ID token) for the claim to appear.
 
 ---
 
@@ -21,7 +21,7 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 | POST | `/auth/register` | Body: `email`, `password`. Returns `sub`. |
 | POST | `/auth/login` | Body: `email`, `password`. Returns tokens. |
 | POST | `/auth/refresh` | Body: `refreshToken`. Returns tokens. |
-| GET | `/auth/me` | JWT required. Returns `sub`, `email`. |
+| GET | `/auth/me` | JWT required. Returns `sub`, `email`, and optional `role` (string from claim `custom:role`, e.g. `admin`) when present. |
 | GET | `/users/{id}` | JWT required. Lookup by Cognito `sub`; returns `sub`, `email`. |
 
 ### Jobs
@@ -52,14 +52,17 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 | POST | `/bookings/{id}/images/upload-url` | Single API call for upload+attach. Reserves a key and adds it to booking `imageKeys`, then returns presigned PUT URL. Upload triggers async Lambda moderation on S3 object create. |
 | GET | `/bookings/{id}/images/urls` | CDN image URLs. Query: `keys=`. Returns `url-or-null` per key; `null` means pending, in manual review, or removed by moderation. |
 
-### Image moderation (operators)
+### Image moderation (platform admin — JWT)
+
+JWT required on API Gateway; Lambda checks `custom:role` (trimmed) === `admin`.
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | `/moderation/images/approve` | Body: `{ "key": "<s3 object key>" }` (must be under `jobs/` or `bookings/`). Sets tag `moderation=approved` when the object is in manual review. Header `X-Image-Moderation-Admin-Key` required. |
-| POST | `/moderation/images/reject` | Same body and header. Deletes the object when it is in manual review (same outcome as auto-reject for bad scores). |
+| GET | `/admin/moderation/pending` | Lists S3 objects under `jobs/` or `bookings/` whose object tagging reports moderation state `pending_review` (see shared image helpers). Query: optional `prefix` = `jobs` or `bookings` (default `jobs`); optional `cursor` (S3 list continuation token from prior response `nextCursor`). Work per request is capped (bounded list + tag reads); response `{ items: { key, lastModified? }[], nextCursor?, prefix }`. |
+| POST | `/admin/moderation/approve` | Body: `{ "key": "<s3 object key>" }` (must be under `jobs/` or `bookings/`). Sets tag `moderation=approved` when the object is in manual review. |
+| POST | `/admin/moderation/reject` | Same body. Deletes the object when it is in manual review (same outcome as auto-reject for bad scores). |
 
-Rekognition label confidence bands (0–100) are configurable via Terraform / SSM: `IMAGE_MODERATION_REKOGNITION_MIN_CONFIDENCE`, `IMAGE_MODERATION_MANUAL_REVIEW_MIN_CONFIDENCE`, `IMAGE_MODERATION_AUTO_REJECT_MIN_CONFIDENCE`. Defaults: 40 / 55 / 75 — max label confidence below the manual threshold auto-approves; between manual and auto-reject queues for operator action; at or above auto-reject deletes the upload.
+Rekognition label confidence bands (0–100) are configurable via Terraform / SSM: `IMAGE_MODERATION_REKOGNITION_MIN_CONFIDENCE`, `IMAGE_MODERATION_MANUAL_REVIEW_MIN_CONFIDENCE`, `IMAGE_MODERATION_AUTO_REJECT_MIN_CONFIDENCE`. Defaults: 40 / 55 / 75 — max label confidence below the manual threshold auto-approves; between manual and auto-reject queues for admin review; at or above auto-reject deletes the upload.
 
 ### Payments
 

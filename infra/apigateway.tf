@@ -7,7 +7,7 @@ resource "aws_apigatewayv2_api" "api" {
   cors_configuration {
     allow_origins = ["*"]
     allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-    allow_headers = ["Content-Type", "Authorization", "X-Correlation-Id", "Idempotency-Key", "X-Image-Moderation-Admin-Key"]
+    allow_headers = ["Content-Type", "Authorization", "X-Correlation-Id", "Idempotency-Key"]
   }
 }
 
@@ -68,6 +68,9 @@ locals {
     "GET /auth/me"                          = true
     "GET /users/{id}"                       = true
     "POST /assistant/chat"                  = true
+    "GET /admin/moderation/pending"         = true
+    "POST /admin/moderation/approve"        = true
+    "POST /admin/moderation/reject"         = true
   }
 }
 
@@ -96,18 +99,5 @@ resource "aws_apigatewayv2_route" "auth_login" {
 resource "aws_apigatewayv2_route" "auth_refresh" {
   api_id    = aws_apigatewayv2_api.api.id
   route_key = "POST /auth/refresh"
-  target    = "integrations/${aws_apigatewayv2_integration.api.id}"
-}
-
-# Operator-only: protected by X-Image-Moderation-Admin-Key (no Cognito JWT).
-resource "aws_apigatewayv2_route" "moderation_approve" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "POST /moderation/images/approve"
-  target    = "integrations/${aws_apigatewayv2_integration.api.id}"
-}
-
-resource "aws_apigatewayv2_route" "moderation_reject" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "POST /moderation/images/reject"
   target    = "integrations/${aws_apigatewayv2_integration.api.id}"
 }

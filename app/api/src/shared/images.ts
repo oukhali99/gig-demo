@@ -5,6 +5,7 @@ import {
   DeleteObjectCommand,
   GetObjectTaggingCommand,
   PutObjectTaggingCommand,
+  ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { RekognitionClient, DetectModerationLabelsCommand } from '@aws-sdk/client-rekognition';
@@ -159,6 +160,40 @@ export async function setObjectModerationStateInBucket(
 
 export async function setObjectModerationTag(key: string, state: ModerationTagValue): Promise<void> {
   await setObjectModerationStateInBucket(BUCKET, key, state);
+}
+
+export type PendingImageRow = { key: string; lastModified?: string };
+
+/**
+ * Lists one page of objects under jobs/ or bookings/ and returns those tagged pending_review.
+ * Caller paginates with nextCursor until undefined, then may switch prefix.
+ */
+export async function listPendingReviewPage(
+  prefix: 'jobs/' | 'bookings/',
+  continuationToken?: string,
+  maxKeys = 40
+): Promise<{ items: PendingImageRow[]; nextCursor?: string }> {
+  const out = await s3.send(
+    new ListObjectsV2Command({
+      Bucket: BUCKET,
+      Prefix: prefix,
+      MaxKeys: maxKeys,
+      ContinuationToken: continuationToken,
+    })
+  );
+  const items: PendingImageRow[] = [];
+  for (const obj of out.Contents ?? []) {
+    const k = obj.Key;
+    if (!k || k.endsWith('/')) continue;
+    const st = await getObjectModerationState(k);
+    if (st === 'pending_review') {
+      items.push({ key: k, lastModified: obj.LastModified?.toISOString() });
+    }
+  }
+  return {
+    items,
+    nextCursor: out.IsTruncated ? out.NextContinuationToken : undefined,
+  };
 }
 
 export async function moderateImage(key: string): Promise<ImageModerationOutcome> {

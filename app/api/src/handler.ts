@@ -31,13 +31,13 @@ export async function handler(event: APIGatewayProxyEventV2): Promise<APIGateway
     const { handleReviews } = await import('./reviews/http.js');
     return handleReviews(event);
   }
-  if (path.startsWith('/moderation')) {
-    const { handleModeration } = await import('./moderation/http.js');
-    return handleModeration(event);
-  }
   if (path.startsWith('/assistant')) {
     const { handleAssistant } = await import('./assistant/http.js');
     return handleAssistant(event);
+  }
+  if (path.startsWith('/admin')) {
+    const { handleAdmin } = await import('./admin/http.js');
+    return handleAdmin(event);
   }
 
   return json(404, { code: 'NOT_FOUND', message: 'Route not found' });

@@ -26,6 +26,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export interface AuthUser {
   sub: string;
   email?: string;
+  /** From Cognito `custom:role` when set (e.g. `admin`). */
+  role?: string;
 }
 
 export async function authRegister(email: string, password: string): Promise<{ sub: string }> {
@@ -54,6 +56,32 @@ export async function authRefresh(refreshToken: string): Promise<{
 
 export async function authMe(): Promise<AuthUser> {
   return request<AuthUser>('/auth/me');
+}
+
+// --- Admin (JWT + Cognito custom:role=admin) ---
+export interface AdminModerationPendingResponse {
+  items: { key: string; lastModified?: string }[];
+  nextCursor?: string;
+  prefix: string;
+}
+
+export async function getAdminModerationPending(params?: {
+  prefix?: 'jobs' | 'bookings';
+  cursor?: string;
+}): Promise<AdminModerationPendingResponse> {
+  const sp = new URLSearchParams();
+  if (params?.prefix) sp.set('prefix', params.prefix);
+  if (params?.cursor) sp.set('cursor', params.cursor);
+  const q = sp.toString();
+  return request<AdminModerationPendingResponse>(`/admin/moderation/pending${q ? `?${q}` : ''}`);
+}
+
+export async function adminModerationApprove(key: string): Promise<{ key: string; moderation: string }> {
+  return request('/admin/moderation/approve', { method: 'POST', body: JSON.stringify({ key }) });
+}
+
+export async function adminModerationReject(key: string): Promise<{ key: string; removed: boolean }> {
+  return request('/admin/moderation/reject', { method: 'POST', body: JSON.stringify({ key }) });
 }
 
 /** Get user by sub (identity/Cognito). Returns { sub, email }. Requires JWT. */

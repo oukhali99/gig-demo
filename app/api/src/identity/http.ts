@@ -60,7 +60,9 @@ async function handleMe(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyR
   }
   const sub = String(claims.sub ?? claims['cognito:username'] ?? '');
   const email = String(claims.email ?? claims['cognito:username'] ?? '');
-  return json(200, { sub, email });
+  const rawRole = claims['custom:role'];
+  const role = typeof rawRole === 'string' && rawRole.trim() ? rawRole.trim() : undefined;
+  return json(200, { sub, email, ...(role ? { role } : {}) });
 }
 
 async function handleGetUser(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {

@@ -16,8 +16,10 @@ resource "aws_cognito_user_pool" "main" {
     required            = true
     mutable             = true
   }
+  # Bare name only: Cognito stores this as custom:role (do not use "custom:role" here
+  # or the pool attribute will not match read_attributes / JWT claims).
   schema {
-    name                = "custom:role"
+    name                = "role"
     attribute_data_type = "String"
     required            = false
     mutable             = true
@@ -49,6 +51,6 @@ resource "aws_cognito_user_pool_client" "main" {
     "ALLOW_REFRESH_TOKEN_AUTH"
   ]
   generate_secret  = false
-  read_attributes  = ["email"]
+  read_attributes  = ["email", "custom:role"]
   write_attributes = ["email"]
 }

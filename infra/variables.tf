@@ -175,13 +175,6 @@ variable "image_moderation_auto_reject_min_confidence" {
   }
 }
 
-variable "image_moderation_admin_api_key" {
-  description = "Shared secret for POST /moderation/images/* (header X-Image-Moderation-Admin-Key). Empty or whitespace: no SSM parameter; moderator actions disabled (403)."
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
 variable "assistant_bedrock_model_id" {
   description = "Bedrock foundation model ID for POST /assistant/chat (SSM: ASSISTANT_BEDROCK_MODEL_ID). Must be enabled in the account/region."
   type        = string

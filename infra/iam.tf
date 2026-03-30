@@ -60,6 +60,18 @@ resource "aws_iam_role_policy" "api_lambda_s3" {
       {
         Effect = "Allow"
         Action = [
+          "s3:ListBucket"
+        ]
+        Resource = aws_s3_bucket.job_images.arn
+        Condition = {
+          StringLike = {
+            "s3:prefix" = ["jobs/", "bookings/", "jobs", "bookings"]
+          }
+        }
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "s3:GetObject",
           "s3:PutObject",
           "s3:DeleteObject",
