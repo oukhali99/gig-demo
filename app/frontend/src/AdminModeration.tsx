@@ -4,6 +4,7 @@ import {
   adminModerationApprove,
   adminModerationReject,
   getAdminModerationPending,
+  getAdminModerationPreviewUrl,
 } from './api';
 
 type Row = { key: string; lastModified?: string };
@@ -17,6 +18,31 @@ function resourceLink(key: string): { to: string; label: string } | null {
     return { to: '/bookings', label: 'Bookings' };
   }
   return null;
+}
+
+function PendingImagePreview({ storageKey }: { storageKey: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [previewErr, setPreviewErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSrc(null);
+    setPreviewErr(null);
+    void getAdminModerationPreviewUrl(storageKey)
+      .then((r) => {
+        if (!cancelled) setSrc(r.url);
+      })
+      .catch((e) => {
+        if (!cancelled) setPreviewErr(e instanceof Error ? e.message : 'Preview failed');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storageKey]);
+
+  if (previewErr) return <p className="error admin-moderation-preview-error">{previewErr}</p>;
+  if (!src) return <p className="state-muted admin-moderation-preview-loading">Loading preview…</p>;
+  return <img src={src} alt="" className="admin-moderation-preview-img" />;
 }
 
 export default function AdminModeration() {
@@ -139,6 +165,7 @@ export default function AdminModeration() {
             const rl = resourceLink(row.key);
             return (
               <li key={row.key} className="card admin-moderation-item">
+                <PendingImagePreview storageKey={row.key} />
                 <code className="admin-moderation-key">{row.key}</code>
                 {row.lastModified && <p className="job-card-meta admin-moderation-meta">{row.lastModified}</p>}
                 <div className="admin-moderation-actions">

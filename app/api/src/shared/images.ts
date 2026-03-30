@@ -1,6 +1,7 @@
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
   HeadObjectCommand,
   DeleteObjectCommand,
   GetObjectTaggingCommand,
@@ -12,6 +13,8 @@ import { RekognitionClient, DetectModerationLabelsCommand } from '@aws-sdk/clien
 
 const BUCKET = process.env.BUCKET_NAME!;
 const PRESIGN_PUT_EXPIRES = 300;
+/** Presigned S3 GET for admin preview of objects not readable via CDN (e.g. pending_review). */
+export const PRESIGN_GET_PREVIEW_EXPIRES_SEC = 300;
 
 const s3 = new S3Client({});
 const rekognition = new RekognitionClient({});
@@ -97,6 +100,14 @@ export function getPresignedPutUrl(key: string, contentType: string): Promise<st
     new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }),
     { expiresIn: PRESIGN_PUT_EXPIRES }
   );
+}
+
+/** Direct S3 GET (bypasses CloudFront, which only serves approved objects). */
+export function getPresignedS3GetObjectUrl(
+  key: string,
+  expiresIn = PRESIGN_GET_PREVIEW_EXPIRES_SEC
+): Promise<string> {
+  return getSignedUrl(s3, new GetObjectCommand({ Bucket: BUCKET, Key: key }), { expiresIn });
 }
 
 export async function getPresignedGetUrl(key: string): Promise<string> {

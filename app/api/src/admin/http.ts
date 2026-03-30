@@ -1,5 +1,5 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
-import { json, badRequest, getClaims, parseBody } from '../lib/index.js';
+import { json, badRequest, getClaims, notFound, parseBody } from '../lib/index.js';
 import * as images from '../shared/images.js';
 import * as actions from '../moderation/actions.js';
 
@@ -32,6 +32,27 @@ async function handlePending(event: APIGatewayProxyEventV2): Promise<APIGatewayP
   });
 }
 
+async function handlePreviewUrl(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  if (!isAdmin(getClaims(event))) return forbidden();
+  const raw = event.queryStringParameters?.key;
+  const key = typeof raw === 'string' ? raw.trim() : '';
+  if (!key || (!key.startsWith('jobs/') && !key.startsWith('bookings/'))) {
+    return badRequest([{ field: 'key', message: 'query key must be a jobs/ or bookings/ object key' }]);
+  }
+  const exists = await images.objectExists(key);
+  if (!exists) return notFound('Object not found');
+  const state = await images.getObjectModerationState(key);
+  if (state !== 'pending_review') {
+    return json(409, {
+      code: 'CONFLICT',
+      message: 'Preview is only available for images awaiting manual review',
+      moderationState: state,
+    });
+  }
+  const url = await images.getPresignedS3GetObjectUrl(key);
+  return json(200, { url, expiresIn: images.PRESIGN_GET_PREVIEW_EXPIRES_SEC });
+}
+
 async function handleApprove(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
   if (!isAdmin(getClaims(event))) return forbidden();
   const body = parseBody<{ key?: string }>(event);
@@ -53,6 +74,7 @@ export async function handleAdmin(event: APIGatewayProxyEventV2): Promise<APIGat
   const path = event.rawPath ?? '';
 
   if (method === 'GET' && path === '/admin/moderation/pending') return handlePending(event);
+  if (method === 'GET' && path === '/admin/moderation/preview-url') return handlePreviewUrl(event);
   if (method === 'POST' && path === '/admin/moderation/approve') return handleApprove(event);
   if (method === 'POST' && path === '/admin/moderation/reject') return handleReject(event);
 

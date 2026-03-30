@@ -977,6 +977,24 @@ button.secondary:hover:not(:disabled) {
   margin-bottom: 0.75rem;
 }
 
+.admin-moderation-preview-img {
+  display: block;
+  max-width: min(100%, 420px);
+  max-height: 280px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  margin-bottom: 0.5rem;
+  background: var(--surface-muted);
+}
+
+.admin-moderation-preview-loading,
+.admin-moderation-preview-error {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
 .admin-moderation-key {
   font-size: 0.85rem;
   word-break: break-all;

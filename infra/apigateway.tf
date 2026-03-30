@@ -69,6 +69,7 @@ locals {
     "GET /users/{id}"                       = true
     "POST /assistant/chat"                  = true
     "GET /admin/moderation/pending"         = true
+    "GET /admin/moderation/preview-url"     = true
     "POST /admin/moderation/approve"        = true
     "POST /admin/moderation/reject"         = true
   }

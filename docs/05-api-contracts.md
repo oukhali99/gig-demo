@@ -59,6 +59,7 @@ JWT required on API Gateway; Lambda checks `custom:role` (trimmed) === `admin`.
 | Method | Path | Purpose |
 |--------|------|---------|
 | GET | `/admin/moderation/pending` | Lists S3 objects under `jobs/` or `bookings/` whose object tagging reports moderation state `pending_review` (see shared image helpers). Query: optional `prefix` = `jobs` or `bookings` (default `jobs`); optional `cursor` (S3 list continuation token from prior response `nextCursor`). Work per request is capped (bounded list + tag reads); response `{ items: { key, lastModified? }[], nextCursor?, prefix }`. |
+| GET | `/admin/moderation/preview-url` | Query: **`key`** (required) = S3 object key under `jobs/` or `bookings/`. Only objects in **`pending_review`** return `{ url, expiresIn }` where `url` is a short-lived **presigned S3 GET** (CDN URLs intentionally do not serve non-approved objects). `404` if missing; `409` if not `pending_review`. |
 | POST | `/admin/moderation/approve` | Body: `{ "key": "<s3 object key>" }` (must be under `jobs/` or `bookings/`). Sets tag `moderation=approved` when the object is in manual review. |
 | POST | `/admin/moderation/reject` | Same body. Deletes the object when it is in manual review (same outcome as auto-reject for bad scores). |
 

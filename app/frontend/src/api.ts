@@ -84,6 +84,12 @@ export async function adminModerationReject(key: string): Promise<{ key: string;
   return request('/admin/moderation/reject', { method: 'POST', body: JSON.stringify({ key }) });
 }
 
+/** Presigned S3 GET for one pending_review object (admin JWT). */
+export async function getAdminModerationPreviewUrl(key: string): Promise<{ url: string; expiresIn: number }> {
+  const sp = new URLSearchParams({ key });
+  return request<{ url: string; expiresIn: number }>(`/admin/moderation/preview-url?${sp.toString()}`);
+}
+
 /** Get user by sub (identity/Cognito). Returns { sub, email }. Requires JWT. */
 export async function getUser(sub: string): Promise<{ sub: string; email: string }> {
   return request<{ sub: string; email: string }>(`/users/${encodeURIComponent(sub)}`);
