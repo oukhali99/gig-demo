@@ -14,6 +14,7 @@ import {
   type Job,
   type Booking,
 } from './api';
+import { ImageLightboxThumb } from './ImageLightboxThumb';
 
 export default function JobDetail() {
   const { auth, loading: authLoading } = useAuth();
@@ -152,7 +153,14 @@ export default function JobDetail() {
               {job.imageKeys!.map((key) => {
                 const url = imageUrls[key];
                 if (url) {
-                  return <img key={key} src={url} alt="Job" className="job-thumb" />;
+                  return (
+                    <ImageLightboxThumb
+                      key={key}
+                      src={url}
+                      alt="Job photo"
+                      thumbClassName="job-thumb"
+                    />
+                  );
                 }
                 if (url === null) {
                   return (

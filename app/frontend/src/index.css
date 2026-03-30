@@ -120,13 +120,26 @@ main.page-shell {
 }
 
 .app-nav-inner {
-  max-width: 48rem;
+  /* Wider than main content so links + CTA stay one row on typical laptops */
+  max-width: min(100%, 64rem);
   margin: 0 auto;
   padding: 0.65rem 1.25rem;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0.75rem 1rem;
+  gap: 0.5rem 0.65rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.app-nav-inner .app-brand {
+  flex-shrink: 0;
+}
+
+.app-nav-inner .app-nav-end {
+  flex-shrink: 0;
 }
 
 .app-nav {
@@ -151,9 +164,9 @@ main.page-shell {
 
 .app-nav-cluster {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0.15rem 0.35rem;
+  gap: 0.05rem 0.2rem;
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -161,9 +174,10 @@ main.page-shell {
 .app-nav-link {
   color: rgba(250, 247, 242, 0.92) !important;
   text-decoration: none !important;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
-  padding: 0.35rem 0.55rem;
+  padding: 0.3rem 0.45rem;
+  white-space: nowrap;
   border-radius: var(--radius-sm);
   background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
   transition: background-size 0.2s ease, color 0.15s ease, background-color 0.15s ease;
@@ -179,15 +193,15 @@ main.page-shell {
 .app-nav-end {
   margin-left: auto;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0.35rem 0.65rem;
+  gap: 0.35rem 0.5rem;
 }
 
 .app-nav-user {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   color: rgba(245, 240, 232, 0.78);
-  max-width: 12rem;
+  max-width: 9rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -199,8 +213,8 @@ main.page-shell {
   align-items: center;
   justify-content: center;
   margin-top: 0;
-  padding: 0.38rem 0.85rem;
-  font-size: 0.88rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
   border-radius: 999px;
   border: none;
   background: var(--color-accent);
@@ -436,6 +450,75 @@ main.page-shell {
   font-size: 0.75rem;
   color: var(--color-muted);
   background: rgba(63, 58, 54, 0.05);
+}
+
+/* Click-to-enlarge (JobDetail, admin moderation, etc.) */
+.image-lightbox-thumb-btn {
+  display: inline-block;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+  vertical-align: top;
+  line-height: 0;
+  border-radius: var(--radius-sm);
+}
+
+.image-lightbox-thumb-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.image-lightbox-thumb-btn--stack {
+  display: block;
+  margin-bottom: 0.5rem;
+  border-radius: var(--radius-md);
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem 1rem;
+  background: rgba(0, 0, 0, 0.9);
+  cursor: zoom-out;
+}
+
+.image-lightbox-img {
+  max-width: 96vw;
+  max-height: calc(100vh - 2rem);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  cursor: default;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.5);
+}
+
+.image-lightbox-close {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 2001;
+  margin: 0;
+  padding: 0.25rem 0.65rem;
+  font-size: 1.75rem;
+  line-height: 1;
+  font-weight: 300;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.image-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
 }
 
 .job-upload-row {
@@ -985,8 +1068,8 @@ button.secondary:hover:not(:disabled) {
   height: auto;
   object-fit: contain;
   border-radius: var(--radius-md);
-  margin-bottom: 0.5rem;
   background: var(--surface-muted);
+  vertical-align: middle;
 }
 
 .admin-moderation-preview-loading,

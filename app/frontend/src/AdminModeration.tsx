@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ImageLightboxThumb } from './ImageLightboxThumb';
 import {
   adminModerationApprove,
   adminModerationReject,
@@ -42,7 +43,15 @@ function PendingImagePreview({ storageKey }: { storageKey: string }) {
 
   if (previewErr) return <p className="error admin-moderation-preview-error">{previewErr}</p>;
   if (!src) return <p className="state-muted admin-moderation-preview-loading">Loading preview…</p>;
-  return <img src={src} alt="" className="admin-moderation-preview-img" />;
+
+  return (
+    <ImageLightboxThumb
+      src={src}
+      alt=""
+      thumbClassName="admin-moderation-preview-img"
+      thumbButtonClassName="image-lightbox-thumb-btn--stack"
+    />
+  );
 }
 
 export default function AdminModeration() {

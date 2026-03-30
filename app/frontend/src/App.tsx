@@ -40,7 +40,7 @@ function Nav() {
                   Drafts
                 </Link>
                 <Link to="/bookings" className="app-nav-link">
-                  My bookings
+                  Bookings
                 </Link>
                 <Link to="/payments" className="app-nav-link">
                   Payments
@@ -68,7 +68,7 @@ function Nav() {
                 {auth.user.email ?? auth.user.sub}
               </span>
               <Link to="/jobs/new" className="btn-nav-cta">
-                Post a job
+                Post job
               </Link>
               <button type="button" className="secondary" onClick={logout}>
                 Logout
