@@ -72,7 +72,35 @@ async function handleGetUser(event: APIGatewayProxyEventV2): Promise<APIGatewayP
   if (!id) return json(400, { errors: [{ field: 'id', message: 'User ID required' }] });
   const user = await cognito.getUserBySub(id);
   if (!user) return json(404, { code: 'NOT_FOUND', message: 'User not found' });
-  return json(200, { sub: user.sub, email: user.email });
+  return json(200, { sub: user.sub, email: user.email, name: user.name ?? null, bio: user.bio ?? null });
+}
+
+async function handleUpdateUser(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const claims = getClaims(event);
+  if (!claims) return json(401, { code: 'UNAUTHORIZED', message: 'Missing or invalid token' });
+  const currentSub = String(claims.sub ?? claims['cognito:username'] ?? '');
+  const id = event.pathParameters?.id;
+  if (!id) return json(400, { errors: [{ field: 'id', message: 'User ID required' }] });
+  if (id !== currentSub) {
+    return json(403, { code: 'FORBIDDEN', message: 'You can only update your own profile' });
+  }
+  const body = parseBody<{ name?: string; bio?: string }>(event);
+  if (!body || typeof body !== 'object') {
+    return json(400, { errors: [{ field: 'body', message: 'JSON body required' }] });
+  }
+  const name = typeof body.name === 'string' ? body.name.trim() : undefined;
+  const bio = typeof body.bio === 'string' ? body.bio.trim() : undefined;
+
+  if (name !== undefined && name.length > 64) {
+    return json(400, { errors: [{ field: 'name', message: 'max 64 characters' }] });
+  }
+  if (bio !== undefined && bio.length > 512) {
+    return json(400, { errors: [{ field: 'bio', message: 'max 512 characters' }] });
+  }
+
+  const updated = await cognito.updateUserBySub(id, { name: name ?? '', bio: bio ?? '' });
+  if (!updated) return json(404, { code: 'NOT_FOUND', message: 'User not found' });
+  return json(200, { sub: updated.sub, email: updated.email, name: updated.name ?? null, bio: updated.bio ?? null });
 }
 
 export async function handleIdentity(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
@@ -87,10 +115,17 @@ export async function handleIdentity(event: APIGatewayProxyEventV2): Promise<API
     else if (method === 'POST' && path === '/auth/login') response = await handleLogin(event);
     else if (method === 'POST' && path === '/auth/refresh') response = await handleRefresh(event);
     else if (method === 'GET' && path === '/auth/me') response = await handleMe(event);
-    else if (method === 'GET' && path.startsWith('/users/')) {
+    else if (path.startsWith('/users/')) {
       const id = event.pathParameters?.id ?? (path.replace(/^\/users\/?/, '').split('/')[0] || undefined);
-      if (!id) response = json(400, { errors: [{ field: 'id', message: 'User ID required' }] });
-      else response = await handleGetUser({ ...event, pathParameters: { ...event.pathParameters, id } });
+      if (!id) {
+        response = json(400, { errors: [{ field: 'id', message: 'User ID required' }] });
+      } else if (method === 'GET') {
+        response = await handleGetUser({ ...event, pathParameters: { ...event.pathParameters, id } });
+      } else if (method === 'PUT' || method === 'PATCH') {
+        response = await handleUpdateUser({ ...event, pathParameters: { ...event.pathParameters, id } });
+      } else {
+        response = json(405, { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' });
+      }
     } else response = json(404, { code: 'NOT_FOUND', message: 'Route not found' });
 
     devLog('identity response', { method, path, statusCode: (response as { statusCode?: number }).statusCode });

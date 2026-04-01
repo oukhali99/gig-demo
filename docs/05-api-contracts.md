@@ -22,7 +22,8 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 | POST | `/auth/login` | Body: `email`, `password`. Returns tokens. |
 | POST | `/auth/refresh` | Body: `refreshToken`. Returns tokens. |
 | GET | `/auth/me` | JWT required. Returns `sub`, `email`, and optional `role` (string from claim `custom:role`, e.g. `admin`) when present. |
-| GET | `/users/{id}` | JWT required. Lookup by Cognito `sub`; returns `sub`, `email`. |
+| GET | `/users/{id}` | JWT required. Lookup by Cognito `sub`; returns `sub`, `email`, `name`, `bio`. |
+| PUT | `/users/{id}` | JWT required. Update own profile `name` / `bio` (max 64/512 chars). |
 
 ### Jobs
 

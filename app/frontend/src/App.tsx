@@ -6,6 +6,7 @@ import CreateJob from './CreateJob';
 import DraftList from './DraftList';
 import BookingsList from './BookingsList';
 import PaymentsList from './PaymentsList';
+import Profile from './Profile';
 import Login from './Login';
 import Register from './Register';
 import AdminModeration from './AdminModeration';
@@ -44,6 +45,9 @@ function Nav() {
                 </Link>
                 <Link to="/payments" className="app-nav-link">
                   Payments
+                </Link>
+                <Link to="/profile" className="app-nav-link">
+                  Profile
                 </Link>
                 {auth.user.role === 'admin' && (
                   <Link to="/admin" className="app-nav-link">
@@ -109,6 +113,7 @@ export default function App() {
           <Route path="/drafts" element={<RequireAuth><DraftList /></RequireAuth>} />
           <Route path="/bookings" element={<RequireAuth><BookingsList /></RequireAuth>} />
           <Route path="/payments" element={<RequireAuth><PaymentsList /></RequireAuth>} />
+          <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
           <Route path="/admin" element={<RequireAuth><RequireAdmin><AdminModeration /></RequireAdmin></RequireAuth>} />
           <Route path="/jobs/:id" element={<JobDetail />} />
         </Routes>

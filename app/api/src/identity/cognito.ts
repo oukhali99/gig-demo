@@ -5,13 +5,14 @@ import {
   InitiateAuthCommand,
   AuthFlowType,
   ListUsersCommand,
+  AdminUpdateUserAttributesCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 
 const client = new CognitoIdentityProviderClient({});
 const USER_POOL_ID = process.env.USER_POOL_ID!;
 const CLIENT_ID = process.env.CLIENT_ID!;
 
-export async function getUserBySub(sub: string): Promise<{ sub: string; email: string } | null> {
+export async function getUserBySub(sub: string): Promise<{ sub: string; email: string; name?: string; bio?: string } | null> {
   const result = await client.send(
     new ListUsersCommand({
       UserPoolId: USER_POOL_ID,
@@ -23,9 +24,46 @@ export async function getUserBySub(sub: string): Promise<{ sub: string; email: s
   if (!user) return null;
   const subAttr = user.Attributes?.find((a) => a.Name === 'sub');
   const emailAttr = user.Attributes?.find((a) => a.Name === 'email');
+  const nameAttr = user.Attributes?.find((a) => a.Name === 'name');
+  const bioAttr = user.Attributes?.find((a) => a.Name === 'custom:bio');
   const email = emailAttr?.Value ?? (user.Username as string) ?? '';
   const userId = subAttr?.Value ?? sub;
-  return userId && email ? { sub: userId, email } : null;
+  if (!userId || !email) return null;
+  const resultUser: { sub: string; email: string; name?: string; bio?: string } = {
+    sub: userId,
+    email,
+  };
+  if (nameAttr?.Value) resultUser.name = nameAttr.Value;
+  if (bioAttr?.Value) resultUser.bio = bioAttr.Value;
+  return resultUser;
+}
+
+export async function updateUserBySub(sub: string, options: { name?: string; bio?: string }): Promise<{ sub: string; email: string; name?: string; bio?: string } | null> {
+  const result = await client.send(
+    new ListUsersCommand({
+      UserPoolId: USER_POOL_ID,
+      Filter: `sub = "${sub}"`,
+      Limit: 1,
+    })
+  );
+  const user = result.Users?.[0];
+  if (!user || !user.Username) return null;
+
+  const attrUpdates = [] as { Name: string; Value: string }[];
+  if (options.name !== undefined) attrUpdates.push({ Name: 'name', Value: options.name });
+  if (options.bio !== undefined) attrUpdates.push({ Name: 'custom:bio', Value: options.bio });
+
+  if (attrUpdates.length > 0) {
+    await client.send(
+      new AdminUpdateUserAttributesCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: user.Username,
+        UserAttributes: attrUpdates,
+      })
+    );
+  }
+
+  return getUserBySub(sub);
 }
 
 export async function register(email: string, password: string): Promise<{ sub: string }> {

@@ -29,6 +29,28 @@ resource "aws_cognito_user_pool" "main" {
     }
   }
 
+  schema {
+    name                = "name"
+    attribute_data_type = "String"
+    required            = false
+    mutable             = true
+    string_attribute_constraints {
+      min_length = 1
+      max_length = 64
+    }
+  }
+
+  schema {
+    name                = "bio"
+    attribute_data_type = "String"
+    required            = false
+    mutable             = true
+    string_attribute_constraints {
+      min_length = 0
+      max_length = 512
+    }
+  }
+
   password_policy {
     minimum_length    = 8
     require_lowercase = true
@@ -51,6 +73,6 @@ resource "aws_cognito_user_pool_client" "main" {
     "ALLOW_REFRESH_TOKEN_AUTH"
   ]
   generate_secret  = false
-  read_attributes  = ["email", "custom:role"]
-  write_attributes = ["email"]
+  read_attributes  = ["email", "name", "custom:role", "custom:bio"]
+  write_attributes = ["email", "name", "custom:bio"]
 }

@@ -90,9 +90,23 @@ export async function getAdminModerationPreviewUrl(key: string): Promise<{ url: 
   return request<{ url: string; expiresIn: number }>(`/admin/moderation/preview-url?${sp.toString()}`);
 }
 
-/** Get user by sub (identity/Cognito). Returns { sub, email }. Requires JWT. */
-export async function getUser(sub: string): Promise<{ sub: string; email: string }> {
-  return request<{ sub: string; email: string }>(`/users/${encodeURIComponent(sub)}`);
+/** Get user by sub (identity/Cognito). Returns { sub, email, name, bio }. Requires JWT. */
+export interface UserProfile {
+  sub: string;
+  email: string;
+  name?: string | null;
+  bio?: string | null;
+}
+
+export async function getUser(sub: string): Promise<UserProfile> {
+  return request<UserProfile>(`/users/${encodeURIComponent(sub)}`);
+}
+
+export async function updateUser(sub: string, body: { name?: string; bio?: string }): Promise<UserProfile> {
+  return request<UserProfile>(`/users/${encodeURIComponent(sub)}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
 }
 
 // --- Jobs ---
