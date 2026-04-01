@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import {
+  getUser,
   listBookings,
   listJobs,
   confirmBooking,
@@ -16,6 +17,7 @@ export default function BookingsList() {
   const { auth, loading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [jobs, setJobs] = useState<Record<string, Job>>({});
+  const [users, setUsers] = useState<Record<string, { name?: string; email?: string }>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
@@ -38,6 +40,13 @@ export default function BookingsList() {
         const list = Array.from(byId.values()).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
         setBookings(list);
         const jobIds = [...new Set(list.map((b) => b.jobId))];
+        const userIds = [...new Set(list.flatMap((b) => [b.clientId, b.workerId]))];
+        Promise.all(userIds.map((id) => getUser(id).then((u) => [id, { name: u.name ?? undefined, email: u.email ?? undefined }] as const).catch(() => [id, { email: id }] as const)))
+          .then((list) => {
+            const usersMap: Record<string, { name?: string; email?: string }> = {};
+            list.forEach(([id, user]) => { usersMap[id] = user; });
+            setUsers(usersMap);
+          });
         return Promise.all(jobIds.map((id: string) => getJob(id).then((job: Job) => [id, job] as const)));
       })
       .then((jobPairs) => {
@@ -108,6 +117,16 @@ export default function BookingsList() {
                       <span className="booking-job-fallback">Job {b.jobId.slice(0, 8)}…</span>
                     )}
                     <p className="job-card-meta">Updated {new Date(b.updatedAt).toLocaleString()}</p>
+                    <p className="booking-persons">
+                      Client:{' '}
+                      <Link to={`/users/${b.clientId}`}>
+                        {users[b.clientId]?.name ?? users[b.clientId]?.email ?? b.clientId}
+                      </Link>
+                      {' '}• Worker:{' '}
+                      <Link to={`/users/${b.workerId}`}>
+                        {users[b.workerId]?.name ?? users[b.workerId]?.email ?? b.workerId}
+                      </Link>
+                    </p>
                   </div>
                   <div className="booking-card-actions">
                     {b.status === 'requested' && isClient && (

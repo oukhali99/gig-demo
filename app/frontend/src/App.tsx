@@ -114,6 +114,7 @@ export default function App() {
           <Route path="/bookings" element={<RequireAuth><BookingsList /></RequireAuth>} />
           <Route path="/payments" element={<RequireAuth><PaymentsList /></RequireAuth>} />
           <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
+          <Route path="/users/:id" element={<RequireAuth><Profile /></RequireAuth>} />
           <Route path="/admin" element={<RequireAuth><RequireAdmin><AdminModeration /></RequireAdmin></RequireAuth>} />
           <Route path="/jobs/:id" element={<JobDetail />} />
         </Routes>

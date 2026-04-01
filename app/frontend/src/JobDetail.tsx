@@ -21,7 +21,7 @@ export default function JobDetail() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [job, setJob] = useState<Job | null>(null);
-  const [posterEmail, setPosterEmail] = useState<string | null>(null);
+  const [poster, setPoster] = useState<{ name?: string | null; email?: string | null } | null>(null);
   const [myBooking, setMyBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,8 +54,8 @@ export default function JobDetail() {
   useEffect(() => {
     if (!job?.clientId) return;
     getUser(job.clientId)
-      .then((u) => setPosterEmail(u.email))
-      .catch(() => setPosterEmail(null));
+      .then((u) => setPoster({ name: u.name ?? null, email: u.email ?? null }))
+      .catch(() => setPoster(null));
   }, [job?.clientId]);
 
   useEffect(() => {
@@ -140,7 +140,11 @@ export default function JobDetail() {
       <div className="card">
         <span className={`badge ${job.status}`}>{job.status}</span>
         <h1 className="job-detail-title">{job.title}</h1>
-        {posterEmail && <p className="job-detail-byline">Posted by {posterEmail}</p>}
+        {poster && (
+          <p className="job-detail-byline">
+            Posted by <Link to={`/users/${job?.clientId}`}>{poster.name ?? poster.email ?? 'Unknown'}</Link>
+          </p>
+        )}
         <p><strong>Location:</strong> {job.location}</p>
         <p><strong>Budget:</strong> ${job.budget}</p>
         <p><strong>Scheduled:</strong> {job.scheduledAt.slice(0, 16).replace('T', ' ')}</p>

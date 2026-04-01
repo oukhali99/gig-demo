@@ -1,10 +1,14 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { getUser, updateUser, UserProfile } from './api';
 
 export default function Profile() {
   const { auth } = useAuth();
+  const { id } = useParams<{ id?: string }>();
+  const isOwner = !id || (auth?.user?.sub === id);
+  const targetId = id ?? auth?.user?.sub;
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [name, setName] = useState('');
   const [bio, setBio] = useState('');
@@ -14,9 +18,9 @@ export default function Profile() {
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!auth) return;
+    if (!auth || !targetId) return;
     setLoading(true);
-    getUser(auth.user.sub)
+    getUser(targetId)
       .then((data) => {
         setProfile(data);
         setName(data.name ?? '');
@@ -24,12 +28,12 @@ export default function Profile() {
       })
       .catch((err) => setError(err.message || 'Failed to load profile'))
       .finally(() => setLoading(false));
-  }, [auth]);
+  }, [auth, targetId]);
 
   if (!auth) {
     return (
       <div>
-        <p>You must be logged in to view your profile.</p>
+        <p>You must be logged in to view profiles.</p>
         <Link to="/login">Log in</Link>
       </div>
     );
@@ -71,7 +75,7 @@ export default function Profile() {
       <p>
         <Link to="/">← Back to Jobs</Link>
       </p>
-      <h1>My Profile</h1>
+      <h1>{isOwner ? 'My Profile' : 'User Profile'}</h1>
       {loading && <p className="state-loading">Loading…</p>}
       {!loading && (
         <form onSubmit={handleSubmit} className="card">
@@ -111,11 +115,16 @@ export default function Profile() {
           {error && <p className="error">Error: {error}</p>}
           {success && <p className="success">{success}</p>}
 
-          <div className="form-actions">
-            <button type="submit" disabled={saving}>
-              {saving ? 'Saving…' : 'Save profile'}
-            </button>
-          </div>
+          {isOwner && (
+            <div className="form-actions">
+              <button type="submit" disabled={saving}>
+                {saving ? 'Saving…' : 'Save profile'}
+              </button>
+            </div>
+          )}
+          {!isOwner && (
+            <p className="state-muted">Viewing another user’s profile; editing is disabled.</p>
+          )}
         </form>
       )}
     </div>

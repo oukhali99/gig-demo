@@ -67,6 +67,7 @@ locals {
     "GET /reviews"                          = true
     "GET /auth/me"                          = true
     "GET /users/{id}"                       = true
+    "PUT /users/{id}"                       = true
     "POST /assistant/chat"                  = true
     "GET /admin/moderation/pending"         = true
     "GET /admin/moderation/preview-url"     = true

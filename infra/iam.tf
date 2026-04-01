@@ -130,7 +130,8 @@ resource "aws_iam_role_policy" "api_lambda_cognito" {
           "cognito-idp:SignUp",
           "cognito-idp:AdminConfirmSignUp",
           "cognito-idp:InitiateAuth",
-          "cognito-idp:ListUsers"
+          "cognito-idp:ListUsers",
+          "cognito-idp:AdminUpdateUserAttributes"
         ]
         Resource = [aws_cognito_user_pool.main.arn]
       }
