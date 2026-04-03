@@ -96,7 +96,7 @@ resource "aws_s3_bucket_policy" "job_images" {
         Resource = "${aws_s3_bucket.job_images.arn}/*"
         Condition = {
           StringEquals = {
-            "AWS:SourceArn"                  = aws_cloudfront_distribution.job_images.arn
+            "AWS:SourceArn"                   = aws_cloudfront_distribution.job_images.arn
             "s3:ExistingObjectTag/moderation" = "approved"
           }
         }

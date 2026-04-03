@@ -19,7 +19,7 @@ export async function ensureLambdaConfigFromSsm(): Promise<void> {
         Path: path,
         Recursive: false,
         NextToken: nextToken,
-        WithDecryption: false,
+        WithDecryption: true,
       })
     );
     parameters.push(...(out.Parameters ?? []));
