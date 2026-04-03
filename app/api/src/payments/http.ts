@@ -112,7 +112,7 @@ function canAccessPayment(sub: string, payment: { clientId?: string; workerId?: 
   if (payment.clientId && payment.workerId) {
     return sub === payment.clientId || sub === payment.workerId;
   }
-  return true;
+  return false;
 }
 
 async function handleListPayments(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
