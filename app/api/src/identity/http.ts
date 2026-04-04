@@ -32,6 +32,9 @@ async function handleLogin(event: APIGatewayProxyEventV2): Promise<APIGatewayPro
     if (err.name === 'NotAuthorizedException' || err.name === 'UserNotFoundException') {
       return json(401, { code: 'UNAUTHORIZED', message: 'Invalid email or password' });
     }
+    if (err.name === 'UserNotConfirmedException') {
+      return json(403, { code: 'EMAIL_NOT_CONFIRMED', message: 'Please verify your email address before logging in.' });
+    }
     throw e;
   }
 }
@@ -51,6 +54,43 @@ async function handleRefresh(event: APIGatewayProxyEventV2): Promise<APIGatewayP
     }
     throw e;
   }
+}
+
+async function handleConfirmSignUp(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const body = parseBody<{ email?: string; code?: string }>(event);
+  if (!body?.email || !body?.code) {
+    return json(400, { errors: [{ field: !body?.email ? 'email' : 'code', message: 'required' }] });
+  }
+  try {
+    await cognito.confirmSignUp(body.email, body.code);
+    return json(200, { confirmed: true });
+  } catch (e: unknown) {
+    const err = e as { name?: string };
+    if (err.name === 'CodeMismatchException' || err.name === 'ExpiredCodeException') {
+      return json(400, { code: 'INVALID_CODE', message: err.name === 'ExpiredCodeException' ? 'Code has expired. Request a new one.' : 'Incorrect code. Please try again.' });
+    }
+    if (err.name === 'NotAuthorizedException') {
+      return json(400, { code: 'ALREADY_CONFIRMED', message: 'This account is already confirmed.' });
+    }
+    throw e;
+  }
+}
+
+async function handleResendConfirmation(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const body = parseBody<{ email?: string }>(event);
+  if (!body?.email) {
+    return json(400, { errors: [{ field: 'email', message: 'required' }] });
+  }
+  try {
+    await cognito.resendConfirmation(body.email);
+  } catch (e: unknown) {
+    const err = e as { name?: string };
+    // Don't reveal whether the account exists
+    if (err.name !== 'UserNotFoundException' && err.name !== 'InvalidParameterException' && err.name !== 'NotAuthorizedException') {
+      throw e;
+    }
+  }
+  return json(200, { sent: true });
 }
 
 async function handleMe(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
@@ -114,6 +154,8 @@ export async function handleIdentity(event: APIGatewayProxyEventV2): Promise<API
     if (method === 'POST' && path === '/auth/register') response = await handleRegister(event);
     else if (method === 'POST' && path === '/auth/login') response = await handleLogin(event);
     else if (method === 'POST' && path === '/auth/refresh') response = await handleRefresh(event);
+    else if (method === 'POST' && path === '/auth/confirm') response = await handleConfirmSignUp(event);
+    else if (method === 'POST' && path === '/auth/resend-confirmation') response = await handleResendConfirmation(event);
     else if (method === 'GET' && path === '/auth/me') response = await handleMe(event);
     else if (path.startsWith('/users/')) {
       const id = event.pathParameters?.id ?? (path.replace(/^\/users\/?/, '').split('/')[0] || undefined);

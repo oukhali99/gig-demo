@@ -1,5 +1,15 @@
 const BASE = (import.meta.env.VITE_API_URL as string)?.replace(/\/$/, '') ?? '';
 
+export class ApiError extends Error {
+  code: string;
+  status: number;
+  constructor(message: string, code: string, status: number) {
+    super(message);
+    this.code = code;
+    this.status = status;
+  }
+}
+
 let authToken: string | null = null;
 
 export function setAuthToken(token: string | null) {
@@ -16,8 +26,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
   const res = await fetch(url, { ...options, headers });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { message?: string }).message ?? res.statusText);
+    const err = await res.json().catch(() => ({})) as { message?: string; code?: string };
+    throw new ApiError(err.message ?? res.statusText, err.code ?? 'UNKNOWN', res.status);
   }
   return res.json() as Promise<T>;
 }
@@ -56,6 +66,14 @@ export async function authRefresh(refreshToken: string): Promise<{
 
 export async function authMe(): Promise<AuthUser> {
   return request<AuthUser>('/auth/me');
+}
+
+export async function authConfirm(email: string, code: string): Promise<void> {
+  await request('/auth/confirm', { method: 'POST', body: JSON.stringify({ email, code }) });
+}
+
+export async function authResendConfirmation(email: string): Promise<void> {
+  await request('/auth/resend-confirmation', { method: 'POST', body: JSON.stringify({ email }) });
 }
 
 // --- Admin (JWT + Cognito custom:role=admin) ---

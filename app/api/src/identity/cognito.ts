@@ -2,6 +2,8 @@ import {
   CognitoIdentityProviderClient,
   SignUpCommand,
   AdminConfirmSignUpCommand,
+  ConfirmSignUpCommand,
+  ResendConfirmationCodeCommand,
   InitiateAuthCommand,
   AuthFlowType,
   ListUsersCommand,
@@ -76,13 +78,34 @@ export async function register(email: string, password: string): Promise<{ sub: 
     })
   );
   if (!UserSub) throw new Error('SignUp did not return UserSub');
+  if (process.env.ENVIRONMENT === 'dev') {
+    await client.send(
+      new AdminConfirmSignUpCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: email,
+      })
+    );
+  }
+  return { sub: UserSub };
+}
+
+export async function confirmSignUp(email: string, code: string): Promise<void> {
   await client.send(
-    new AdminConfirmSignUpCommand({
-      UserPoolId: USER_POOL_ID,
+    new ConfirmSignUpCommand({
+      ClientId: CLIENT_ID,
+      Username: email,
+      ConfirmationCode: code,
+    })
+  );
+}
+
+export async function resendConfirmation(email: string): Promise<void> {
+  await client.send(
+    new ResendConfirmationCodeCommand({
+      ClientId: CLIENT_ID,
       Username: email,
     })
   );
-  return { sub: UserSub };
 }
 
 export async function login(email: string, password: string): Promise<{

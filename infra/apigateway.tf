@@ -103,3 +103,15 @@ resource "aws_apigatewayv2_route" "auth_refresh" {
   route_key = "POST /auth/refresh"
   target    = "integrations/${aws_apigatewayv2_integration.api.id}"
 }
+
+resource "aws_apigatewayv2_route" "auth_confirm" {
+  api_id    = aws_apigatewayv2_api.api.id
+  route_key = "POST /auth/confirm"
+  target    = "integrations/${aws_apigatewayv2_integration.api.id}"
+}
+
+resource "aws_apigatewayv2_route" "auth_resend_confirmation" {
+  api_id    = aws_apigatewayv2_api.api.id
+  route_key = "POST /auth/resend-confirmation"
+  target    = "integrations/${aws_apigatewayv2_integration.api.id}"
+}
