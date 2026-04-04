@@ -178,7 +178,7 @@ resource "aws_iam_role_policy" "api_lambda_bedrock" {
           "bedrock:InvokeModelWithResponseStream"
         ]
         Resource = [
-          "arn:${data.aws_partition.current.partition}:bedrock:${data.aws_region.current.name}::foundation-model/*"
+          "arn:${data.aws_partition.current.partition}:bedrock:${data.aws_region.current.name}::foundation-model/${var.assistant_bedrock_model_id}"
         ]
       }
     ]
