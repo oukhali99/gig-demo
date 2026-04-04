@@ -34,7 +34,7 @@ resource "aws_lambda_permission" "api_apigw" {
 
 resource "aws_lambda_function" "image_moderation" {
   function_name    = "${local.name_env}-image-moderation"
-  role             = aws_iam_role.api_lambda.arn
+  role             = aws_iam_role.moderation_lambda.arn
   handler          = "image-moderation-handler.handler"
   runtime          = "nodejs20.x"
   timeout          = 60
