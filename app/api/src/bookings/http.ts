@@ -86,6 +86,13 @@ async function handleGetBooking(event: APIGatewayProxyEventV2): Promise<APIGatew
 
   const booking = await repo.getBooking(bookingId);
   if (!booking) return notFound('Booking not found');
+
+  const sub = getSubFromEvent(event);
+  if (!sub) return json(401, { code: 'UNAUTHORIZED', message: 'Authentication required' });
+  if (booking.clientId !== sub && booking.workerId !== sub) {
+    return json(403, { code: 'FORBIDDEN', message: 'Booking not found' });
+  }
+
   return json(200, booking);
 }
 

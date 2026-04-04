@@ -207,6 +207,13 @@ async function handleGetJob(event: APIGatewayProxyEventV2): Promise<APIGatewayPr
 
   const job = await repo.getJob(jobId);
   if (!job) return notFound('Job not found');
+
+  if (job.status !== 'published') {
+    const sub = getSubFromEvent(event);
+    if (!sub) return json(401, { code: 'UNAUTHORIZED', message: 'Authentication required' });
+    if (job.clientId !== sub) return json(403, { code: 'FORBIDDEN', message: 'Job not found' });
+  }
+
   return json(200, job);
 }
 
@@ -235,6 +242,10 @@ async function handleListJobs(event: APIGatewayProxyEventV2): Promise<APIGateway
       items = items.filter((j) => j.location.toLowerCase().includes(loc));
     }
     return json(200, { items, nextCursor: result.nextCursor });
+  }
+
+  if (status !== 'published') {
+    return json(403, { code: 'FORBIDDEN', message: 'Use clientId=me to list your own non-published jobs' });
   }
 
   const result = await repo.listJobs({
