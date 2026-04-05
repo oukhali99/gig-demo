@@ -1,13 +1,15 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { randomUUID } from 'crypto';
 
-export const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-};
-
 export function json(statusCode: number, body: unknown): APIGatewayProxyResultV2 {
-  return { statusCode, headers: corsHeaders, body: JSON.stringify(body) };
+  return {
+    statusCode,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': process.env.FRONTEND_PUBLIC_URL ?? '*',
+    },
+    body: JSON.stringify(body),
+  };
 }
 
 export function badRequest(errors: { field: string; message: string }[]): APIGatewayProxyResultV2 {

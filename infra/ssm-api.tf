@@ -22,6 +22,7 @@ resource "aws_ssm_parameter" "api_runtime" {
     IMAGE_MODERATION_MANUAL_REVIEW_MIN_CONFIDENCE = tostring(var.image_moderation_manual_review_min_confidence)
     IMAGE_MODERATION_AUTO_REJECT_MIN_CONFIDENCE   = tostring(var.image_moderation_auto_reject_min_confidence)
     ASSISTANT_BEDROCK_MODEL_ID                    = var.assistant_bedrock_model_id
+    FRONTEND_PUBLIC_URL                           = trimsuffix(trimspace(var.frontend_public_url), "/")
   }
 
   name  = "/${local.name_env}/api/${each.key}"
