@@ -23,5 +23,6 @@ github_branch         = "main"
 
 # Stripe (leave empty to disable payments)
 # stripe_secret_key      = "sk_live_..."   # stored as SecureString in SSM; rotate out-of-band
-# stripe_webhook_secret  = "whsec_..."     # stored as SecureString in SSM; rotate out-of-band
+# stripe_webhook_secret  = "whsec_..."     # single webhook secret for platform + Connect events
 # stripe_publishable_key = "pk_live_..."   # injected into frontend build as VITE_STRIPE_PUBLISHABLE_KEY
+# platform_fee_percent   = 10              # % of job budget retained as platform fee (default: 10)

@@ -49,3 +49,9 @@ resource "aws_ssm_parameter" "stripe_webhook_secret" {
     ignore_changes = [value]
   }
 }
+
+resource "aws_ssm_parameter" "platform_fee_percent" {
+  name  = "/${local.name_env}/api/PLATFORM_FEE_PERCENT"
+  type  = "String"
+  value = tostring(var.platform_fee_percent)
+}

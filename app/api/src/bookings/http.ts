@@ -1,11 +1,13 @@
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { randomUUID } from 'crypto';
-import { devLog, json, badRequest, notFound, getCorrelationId, getIdempotencyKey, getSubFromEvent, parseBody } from '../lib/index.js';
+import { devLog, json, badRequest, notFound, getCorrelationId, getIdempotencyKey, getSubFromEvent, getClaims, parseBody } from '../lib/index.js';
 import * as repo from './repository.js';
 import * as events from './events.js';
 import * as images from '../shared/images.js';
 import * as jobsRepo from '../jobs/repository.js';
+import * as cognitoModule from '../identity/cognito.js';
 import * as paymentHooks from '../payments/booking-hooks.js';
+import * as stripeClient from '../payments/stripe-client.js';
 import type { CreateBookingInput, BookingStatus } from './types.js';
 
 function getBookingIdFromPath(event: APIGatewayProxyEventV2): string | null {
@@ -48,6 +50,13 @@ async function handleCreateBooking(event: APIGatewayProxyEventV2): Promise<APIGa
   if (!sub) return json(401, { code: 'UNAUTHORIZED', message: 'Authentication required' });
   if (sub === clientId) {
     return json(400, { code: 'INVALID', message: 'Job owner cannot book their own job' });
+  }
+
+  if (stripeClient.isStripeConfigured()) {
+    const claims = getClaims(event);
+    if (!claims?.['custom:stripeAccountId']) {
+      return json(403, { code: 'STRIPE_NOT_ONBOARDED', message: 'You must set up payouts before applying for jobs' });
+    }
   }
 
   const now = new Date().toISOString();
@@ -188,7 +197,8 @@ async function handleComplete(event: APIGatewayProxyEventV2): Promise<APIGateway
 
   const correlationId = getCorrelationId(event);
   await events.publishBookingCompleted(updated, correlationId);
-  await paymentHooks.onBookingCompleted(updated.bookingId, correlationId);
+  const workerProfile = await cognitoModule.getUserBySub(booking.workerId).catch(() => null);
+  await paymentHooks.onBookingCompleted(updated.bookingId, correlationId, workerProfile?.stripeAccountId);
   return json(200, updated);
 }
 

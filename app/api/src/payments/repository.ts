@@ -83,15 +83,24 @@ export async function getPayment(paymentId: string): Promise<Payment | null> {
 export async function updatePaymentStatus(
   paymentId: string,
   status: PaymentStatus,
-  updatedAt: string
+  updatedAt: string,
+  transferId?: string
 ): Promise<Payment | null> {
+  const expressionParts = ['#status = :status', 'updatedAt = :updatedAt'];
+  const attrValues: Record<string, unknown> = { ':status': status, ':updatedAt': updatedAt };
+
+  if (transferId) {
+    expressionParts.push('transferId = :transferId');
+    attrValues[':transferId'] = transferId;
+  }
+
   const result = await client.send(
     new UpdateItemCommand({
       TableName: paymentsTableName(),
       Key: marshall({ paymentId }),
-      UpdateExpression: 'SET #status = :status, updatedAt = :updatedAt',
+      UpdateExpression: `SET ${expressionParts.join(', ')}`,
       ExpressionAttributeNames: { '#status': 'status' },
-      ExpressionAttributeValues: marshall({ ':status': status, ':updatedAt': updatedAt }),
+      ExpressionAttributeValues: marshall(attrValues),
       ReturnValues: 'ALL_NEW',
     })
   );

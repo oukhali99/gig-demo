@@ -51,6 +51,17 @@ resource "aws_cognito_user_pool" "main" {
     }
   }
 
+  schema {
+    name                = "stripeAccountId"
+    attribute_data_type = "String"
+    required            = false
+    mutable             = true
+    string_attribute_constraints {
+      min_length = 0
+      max_length = 64
+    }
+  }
+
   password_policy {
     minimum_length    = 8
     require_lowercase = true
@@ -73,6 +84,6 @@ resource "aws_cognito_user_pool_client" "main" {
     "ALLOW_REFRESH_TOKEN_AUTH"
   ]
   generate_secret  = false
-  read_attributes  = ["email", "name", "custom:role", "custom:bio"]
-  write_attributes = ["email", "name", "custom:bio"]
+  read_attributes  = ["email", "name", "custom:role", "custom:bio", "custom:stripeAccountId"]
+  write_attributes = ["email", "name", "custom:bio", "custom:stripeAccountId"]
 }

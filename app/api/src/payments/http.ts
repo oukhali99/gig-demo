@@ -249,6 +249,14 @@ async function handleWebhook(event: APIGatewayProxyEventV2): Promise<APIGatewayP
     }
   }
 
+  // Connect event: account.updated fires when a worker completes Stripe Express onboarding.
+  // No action needed here — stripeAccountId is already stored in Cognito when the account is
+  // created. This branch exists for logging and future extensibility.
+  if (stripeEvent.type === 'account.updated') {
+    const account = stripeEvent.data.object as { id: string; details_submitted?: boolean };
+    console.log('Stripe Connect account.updated', { accountId: account.id, detailsSubmitted: account.details_submitted });
+  }
+
   return json(200, { received: true });
 }
 

@@ -433,6 +433,10 @@ resource "aws_codebuild_project" "deploy" {
       name  = "TF_VAR_stripe_publishable_key"
       value = var.stripe_publishable_key
     }
+    environment_variable {
+      name  = "TF_VAR_platform_fee_percent"
+      value = tostring(var.platform_fee_percent)
+    }
   }
 
   logs_config {

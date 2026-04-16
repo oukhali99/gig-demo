@@ -1,6 +1,7 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { devLog, json, parseBody, getClaims } from '../lib/index.js';
 import * as cognito from './cognito.js';
+import * as stripeClient from '../payments/stripe-client.js';
 
 async function handleRegister(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
   const body = parseBody<{ email?: string; password?: string }>(event);
@@ -143,6 +144,49 @@ async function handleUpdateUser(event: APIGatewayProxyEventV2): Promise<APIGatew
   return json(200, { sub: updated.sub, email: updated.email, name: updated.name ?? null, bio: updated.bio ?? null });
 }
 
+async function handleStripeOnboard(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const claims = getClaims(event);
+  if (!claims) return json(401, { code: 'UNAUTHORIZED', message: 'Missing or invalid token' });
+  if (!stripeClient.isStripeConfigured()) {
+    return json(503, { code: 'STRIPE_NOT_CONFIGURED', message: 'Stripe is not enabled on this platform' });
+  }
+  const sub = String(claims.sub ?? claims['cognito:username'] ?? '');
+  const frontendUrl = (process.env.FRONTEND_PUBLIC_URL ?? '').replace(/\/$/, '');
+
+  const user = await cognito.getUserBySub(sub);
+  if (!user) return json(404, { code: 'NOT_FOUND', message: 'User not found' });
+
+  let accountId = user.stripeAccountId;
+  if (!accountId) {
+    const account = await stripeClient.createConnectAccount();
+    accountId = account.id;
+    await cognito.setStripeAccountId(sub, accountId);
+  }
+
+  const accountLink = await stripeClient.createAccountLink({
+    accountId,
+    returnUrl: `${frontendUrl}/profile?stripe=complete`,
+    refreshUrl: `${frontendUrl}/profile?stripe=refresh`,
+  });
+
+  return json(200, { url: accountLink.url });
+}
+
+async function handleStripeStatus(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const claims = getClaims(event);
+  if (!claims) return json(401, { code: 'UNAUTHORIZED', message: 'Missing or invalid token' });
+  if (!stripeClient.isStripeConfigured()) {
+    return json(200, { configured: false, detailsSubmitted: false });
+  }
+  const sub = String(claims.sub ?? claims['cognito:username'] ?? '');
+  const user = await cognito.getUserBySub(sub);
+  if (!user?.stripeAccountId) {
+    return json(200, { configured: false, detailsSubmitted: false });
+  }
+  const account = await stripeClient.getConnectAccount(user.stripeAccountId);
+  return json(200, { configured: true, detailsSubmitted: account.details_submitted ?? false });
+}
+
 export async function handleIdentity(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
   const method = event.requestContext?.http?.method ?? 'GET';
   const path = event.rawPath ?? '';
@@ -157,6 +201,8 @@ export async function handleIdentity(event: APIGatewayProxyEventV2): Promise<API
     else if (method === 'POST' && path === '/auth/confirm') response = await handleConfirmSignUp(event);
     else if (method === 'POST' && path === '/auth/resend-confirmation') response = await handleResendConfirmation(event);
     else if (method === 'GET' && path === '/auth/me') response = await handleMe(event);
+    else if (method === 'POST' && path === '/users/me/stripe/onboard') response = await handleStripeOnboard(event);
+    else if (method === 'GET' && path === '/users/me/stripe/status') response = await handleStripeStatus(event);
     else if (path.startsWith('/users/')) {
       const id = event.pathParameters?.id ?? (path.replace(/^\/users\/?/, '').split('/')[0] || undefined);
       if (!id) {

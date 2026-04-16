@@ -24,6 +24,8 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 | GET | `/auth/me` | JWT required. Returns `sub`, `email`, and optional `role` (string from claim `custom:role`, e.g. `admin`) when present. |
 | GET | `/users/{id}` | JWT required. Lookup by Cognito `sub`; returns `sub`, `email`, `name`, `bio`. |
 | PUT | `/users/{id}` | JWT required. Update own profile `name` / `bio` (max 64/512 chars). |
+| POST | `/users/me/stripe/onboard` | JWT required. Creates a Stripe Express account for the caller (if not already created), stores `stripeAccountId` in Cognito, and returns `{ url }` — a one-time Stripe-hosted onboarding URL. Redirect the worker to it. Returns `503` if Stripe is not configured. |
+| GET | `/users/me/stripe/status` | JWT required. Returns `{ configured: boolean, detailsSubmitted: boolean }`. `configured` = worker has a Stripe account id; `detailsSubmitted` = Stripe onboarding complete. Returns `{ configured: false, detailsSubmitted: false }` when Stripe is not enabled. |
 
 ### Jobs
 
@@ -43,7 +45,7 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | `/bookings` | Create booking. Body: `jobId`. **Header `Idempotency-Key` required.** |
+| POST | `/bookings` | Create booking. Body: `jobId`. **Header `Idempotency-Key` required.** Returns `403 STRIPE_NOT_ONBOARDED` if Stripe is configured and the worker has not completed payout onboarding. |
 | GET | `/bookings/{id}` | Get booking. |
 | GET | `/bookings` | List. Query: one of `jobId`, `workerId`, or `status` required; `limit`, `cursor`. Filtered to parties. |
 | POST | `/bookings/{id}/confirm` | Owner confirms. Body optional: `paymentMethodId` (Stripe PaymentMethod id). If provided and Stripe is configured, creates a `capture_method: manual` PaymentIntent as a hold on the client's card before confirming. Returns `402 PAYMENT_REQUIRES_ACTION` if the card requires 3D Secure. |
@@ -70,7 +72,7 @@ Rekognition label confidence bands (0–100) are configurable via Terraform / SS
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| POST | `/payments/webhook` | None (Stripe-signed) | Stripe webhook receiver. Validates `Stripe-Signature` against `STRIPE_WEBHOOK_SECRET`. Handles `payment_intent.canceled`. Returns `{ received: true }`. |
+| POST | `/payments/webhook` | None (Stripe-signed) | Stripe webhook receiver. Verifies `Stripe-Signature` against `STRIPE_WEBHOOK_SECRET`. Register this endpoint **once** in the Stripe dashboard with "Connected accounts" enabled, subscribing to: `payment_intent.canceled`, `account.updated`. Returns `{ received: true }`. |
 | POST | `/payments/hold` | JWT | Body: `bookingId`, `amount` **(integer cents)**, optional `currency`, optional `paymentMethodId`. **Header `Idempotency-Key` required.** Caller must be a booking party. If `paymentMethodId` is provided and Stripe is configured, creates a Stripe PaymentIntent with `capture_method: manual`. |
 | GET | `/payments` | JWT | List payments for the current user (as client or worker). Query: optional `limit` (default 50, max 100). Response `{ items: Payment[] }` sorted by `createdAt` descending. |
 | GET | `/payments/{id}` | JWT | Get payment (party only). |
@@ -78,6 +80,14 @@ Rekognition label confidence bands (0–100) are configurable via Terraform / SS
 | POST | `/payments/{id}/refund` | JWT | Issues a Stripe refund (if PaymentIntent is attached) and marks payment `refunded`. Body optional `reason`. |
 
 **Payment amounts**: `budget` on jobs and `amount` on payments are **integer cents** (e.g. `5000` = $50.00).
+
+**Payment status machine**: `hold_created → released → transferred | transfer_failed | refunded`
+- `transferred`: capture succeeded and worker's share was transferred to their Stripe Express account (`transferId` stored).
+- `transfer_failed`: capture succeeded but transfer threw; booking still completes — operator resolves via Stripe dashboard.
+- `released`: capture succeeded but no Stripe transfer was attempted (Stripe not configured, or worker has no Express account).
+- `refunded`: hold cancelled (booking cancelled) or PaymentIntent refunded.
+
+**Platform fee**: configured via `PLATFORM_FEE_PERCENT` in SSM (default `10`). Transfer amount = `captured × (1 − fee/100)`, rounded down to the nearest cent.
 
 ### Notifications
 

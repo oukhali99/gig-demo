@@ -1,11 +1,12 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { getUser, updateUser, UserProfile } from './api';
+import { getUser, updateUser, stripeOnboard, stripeStatus, UserProfile } from './api';
 
 export default function Profile() {
-  const { auth } = useAuth();
+  const { auth, refreshSession } = useAuth();
   const { id } = useParams<{ id?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isOwner = !id || (auth?.user?.sub === id);
   const targetId = id ?? auth?.user?.sub;
 
@@ -16,6 +17,10 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const [stripeConfigured, setStripeConfigured] = useState(false);
+  const [stripeReady, setStripeReady] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(false);
 
   useEffect(() => {
     if (!auth || !targetId) return;
@@ -29,6 +34,33 @@ export default function Profile() {
       .catch((err) => setError(err.message || 'Failed to load profile'))
       .finally(() => setLoading(false));
   }, [auth, targetId]);
+
+  // Load Stripe payout status for own profile
+  useEffect(() => {
+    if (!isOwner || !auth) return;
+    stripeStatus()
+      .then((s) => { setStripeConfigured(s.configured); setStripeReady(s.detailsSubmitted); })
+      .catch(() => { /* Stripe not enabled or network error — hide section silently */ });
+  }, [isOwner, auth]);
+
+  // Handle return from Stripe onboarding
+  useEffect(() => {
+    const stripeParam = searchParams.get('stripe');
+    if (!stripeParam) return;
+    setSearchParams({}, { replace: true });
+
+    if (stripeParam === 'complete') {
+      refreshSession()
+        .then(() => stripeStatus())
+        .then((s) => { setStripeConfigured(s.configured); setStripeReady(s.detailsSubmitted); setSuccess('Payout account set up successfully.'); })
+        .catch(() => setSuccess('Payout account set up. Please refresh the page.'));
+    } else if (stripeParam === 'refresh') {
+      // Account link expired — re-trigger onboarding automatically
+      stripeOnboard()
+        .then((r) => { window.location.href = r.url; })
+        .catch((err) => setError(err.message || 'Failed to resume payout setup'));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!auth) {
     return (
@@ -123,9 +155,48 @@ export default function Profile() {
             </div>
           )}
           {!isOwner && (
-            <p className="state-muted">Viewing another user’s profile; editing is disabled.</p>
+            <p className="state-muted">Viewing another user's profile; editing is disabled.</p>
           )}
         </form>
+      )}
+
+      {isOwner && !loading && (
+        <div className="card" style={{ marginTop: '1.5rem' }}>
+          <h2>Payouts</h2>
+          {!stripeConfigured && !stripeReady ? (
+            <>
+              <p>Set up your payout account to apply for jobs and receive payment when you complete them.</p>
+              <button
+                onClick={() => {
+                  setStripeLoading(true);
+                  stripeOnboard()
+                    .then((r) => { window.location.href = r.url; })
+                    .catch((err) => { setError(err.message || 'Failed to start payout setup'); setStripeLoading(false); });
+                }}
+                disabled={stripeLoading}
+              >
+                {stripeLoading ? 'Redirecting…' : 'Set up payouts'}
+              </button>
+            </>
+          ) : stripeConfigured && !stripeReady ? (
+            <>
+              <p>Your payout account is created but onboarding is incomplete. Finish setting it up to start applying for jobs.</p>
+              <button
+                onClick={() => {
+                  setStripeLoading(true);
+                  stripeOnboard()
+                    .then((r) => { window.location.href = r.url; })
+                    .catch((err) => { setError(err.message || 'Failed to resume payout setup'); setStripeLoading(false); });
+                }}
+                disabled={stripeLoading}
+              >
+                {stripeLoading ? 'Redirecting…' : 'Continue payout setup'}
+              </button>
+            </>
+          ) : (
+            <p className="success">Payouts active — you can apply for jobs and receive payments.</p>
+          )}
+        </div>
       )}
     </div>
   );

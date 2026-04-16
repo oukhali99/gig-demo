@@ -92,7 +92,11 @@ stripe_publishable_key = "pk_test_..."
 
 `stripe_secret_key` and `stripe_webhook_secret` are stored as **SecureString** in SSM (`/{env}/api/STRIPE_SECRET_KEY`, `/{env}/api/STRIPE_WEBHOOK_SECRET`). `stripe_publishable_key` is passed through as a Terraform output and injected into `app/frontend/.env` as `VITE_STRIPE_PUBLISHABLE_KEY` automatically by `scripts/update-frontend-env.sh` during every deploy — no manual `.env` edit needed.
 
-Register `POST /payments/webhook` in the Stripe dashboard pointing at your API URL, subscribing to the `payment_intent.canceled` event. Without Stripe keys, the booking confirm flow works without card collection (local dev / demo mode).
+Register `POST /payments/webhook` in the Stripe dashboard (**Developers → Webhooks → Add endpoint**) pointing at your API URL. Enable **"Listen to events on Connected accounts"** and subscribe to:
+- `payment_intent.canceled`
+- `account.updated`
+
+Use the signing secret from that single registration as `stripe_webhook_secret`. Without Stripe keys, the booking confirm flow works without card collection (local dev / demo mode).
 
 ### CodePipeline
 

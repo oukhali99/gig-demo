@@ -200,3 +200,13 @@ variable "stripe_publishable_key" {
   type        = string
   default     = ""
 }
+
+variable "platform_fee_percent" {
+  description = "Percentage of each job's budget retained as a platform fee before transferring to the worker (0–100). Stored in SSM (PLATFORM_FEE_PERCENT). Default: 10."
+  type        = number
+  default     = 10
+  validation {
+    condition     = var.platform_fee_percent >= 0 && var.platform_fee_percent <= 100
+    error_message = "platform_fee_percent must be between 0 and 100."
+  }
+}

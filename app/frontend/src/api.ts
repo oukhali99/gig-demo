@@ -116,6 +116,14 @@ export interface UserProfile {
   bio?: string | null;
 }
 
+export async function stripeOnboard(): Promise<{ url: string }> {
+  return request<{ url: string }>('/users/me/stripe/onboard', { method: 'POST' });
+}
+
+export async function stripeStatus(): Promise<{ configured: boolean; detailsSubmitted: boolean }> {
+  return request<{ configured: boolean; detailsSubmitted: boolean }>('/users/me/stripe/status');
+}
+
 export async function getUser(sub: string): Promise<UserProfile> {
   return request<UserProfile>(`/users/${encodeURIComponent(sub)}`);
 }
@@ -336,7 +344,7 @@ export async function cancelBooking(id: string): Promise<Booking> {
 }
 
 // --- Payments ---
-export type PaymentStatus = 'hold_created' | 'released' | 'refunded';
+export type PaymentStatus = 'hold_created' | 'released' | 'transferred' | 'transfer_failed' | 'refunded';
 
 export interface Payment {
   paymentId: string;
@@ -349,6 +357,7 @@ export interface Payment {
   clientId?: string;
   workerId?: string;
   stripePaymentIntentId?: string;
+  transferId?: string;
 }
 
 export interface ListPaymentsResponse {

@@ -14,7 +14,9 @@ const client = new CognitoIdentityProviderClient({});
 const USER_POOL_ID = process.env.USER_POOL_ID!;
 const CLIENT_ID = process.env.CLIENT_ID!;
 
-export async function getUserBySub(sub: string): Promise<{ sub: string; email: string; name?: string; bio?: string } | null> {
+export type CognitoUser = { sub: string; email: string; name?: string; bio?: string; stripeAccountId?: string };
+
+export async function getUserBySub(sub: string): Promise<CognitoUser | null> {
   const result = await client.send(
     new ListUsersCommand({
       UserPoolId: USER_POOL_ID,
@@ -28,19 +30,37 @@ export async function getUserBySub(sub: string): Promise<{ sub: string; email: s
   const emailAttr = user.Attributes?.find((a) => a.Name === 'email');
   const nameAttr = user.Attributes?.find((a) => a.Name === 'name');
   const bioAttr = user.Attributes?.find((a) => a.Name === 'custom:bio');
+  const stripeAttr = user.Attributes?.find((a) => a.Name === 'custom:stripeAccountId');
   const email = emailAttr?.Value ?? (user.Username as string) ?? '';
   const userId = subAttr?.Value ?? sub;
   if (!userId || !email) return null;
-  const resultUser: { sub: string; email: string; name?: string; bio?: string } = {
-    sub: userId,
-    email,
-  };
+  const resultUser: CognitoUser = { sub: userId, email };
   if (nameAttr?.Value) resultUser.name = nameAttr.Value;
   if (bioAttr?.Value) resultUser.bio = bioAttr.Value;
+  if (stripeAttr?.Value) resultUser.stripeAccountId = stripeAttr.Value;
   return resultUser;
 }
 
-export async function updateUserBySub(sub: string, options: { name?: string; bio?: string }): Promise<{ sub: string; email: string; name?: string; bio?: string } | null> {
+export async function setStripeAccountId(sub: string, stripeAccountId: string): Promise<void> {
+  const result = await client.send(
+    new ListUsersCommand({
+      UserPoolId: USER_POOL_ID,
+      Filter: `sub = "${sub}"`,
+      Limit: 1,
+    })
+  );
+  const user = result.Users?.[0];
+  if (!user?.Username) throw new Error(`User not found: ${sub}`);
+  await client.send(
+    new AdminUpdateUserAttributesCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: user.Username,
+      UserAttributes: [{ Name: 'custom:stripeAccountId', Value: stripeAccountId }],
+    })
+  );
+}
+
+export async function updateUserBySub(sub: string, options: { name?: string; bio?: string }): Promise<CognitoUser | null> {
   const result = await client.send(
     new ListUsersCommand({
       UserPoolId: USER_POOL_ID,

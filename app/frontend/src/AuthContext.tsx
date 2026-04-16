@@ -9,6 +9,7 @@ const AuthContext = createContext<{
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  refreshSession: () => Promise<void>;
 } | null>(null);
 
 const TOKEN_KEY = 'gig_id_token';
@@ -37,6 +38,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
     setAuth(null);
+  };
+
+  const refreshSession = async () => {
+    const refresh = localStorage.getItem(REFRESH_KEY);
+    if (!refresh) return;
+    const tokens = await api.authRefresh(refresh);
+    api.setAuthToken(tokens.idToken);
+    localStorage.setItem(TOKEN_KEY, tokens.idToken);
+    const user = await api.authMe();
+    setAuth({ user, token: tokens.idToken });
   };
 
   useEffect(() => {
@@ -72,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ auth, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ auth, loading, login, register, logout, refreshSession }}>
       {children}
     </AuthContext.Provider>
   );

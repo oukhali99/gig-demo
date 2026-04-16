@@ -49,6 +49,45 @@ export async function refundPayment(paymentIntentId: string): Promise<Stripe.Ref
   return stripe.refunds.create({ payment_intent: paymentIntentId });
 }
 
+export async function createTransfer(params: {
+  amountCents: number;
+  currency: string;
+  destination: string;
+  bookingId: string;
+}): Promise<Stripe.Transfer> {
+  const stripe = getStripe();
+  return stripe.transfers.create({
+    amount: params.amountCents,
+    currency: params.currency.toLowerCase(),
+    destination: params.destination,
+    metadata: { bookingId: params.bookingId },
+  });
+}
+
+export async function createConnectAccount(): Promise<Stripe.Account> {
+  const stripe = getStripe();
+  return stripe.accounts.create({ type: 'express' });
+}
+
+export async function createAccountLink(params: {
+  accountId: string;
+  returnUrl: string;
+  refreshUrl: string;
+}): Promise<Stripe.AccountLink> {
+  const stripe = getStripe();
+  return stripe.accountLinks.create({
+    account: params.accountId,
+    return_url: params.returnUrl,
+    refresh_url: params.refreshUrl,
+    type: 'account_onboarding',
+  });
+}
+
+export async function getConnectAccount(accountId: string): Promise<Stripe.Account> {
+  const stripe = getStripe();
+  return stripe.accounts.retrieve(accountId);
+}
+
 export function constructWebhookEvent(rawBody: string, signature: string): Stripe.Event {
   const stripe = getStripe();
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -57,3 +96,4 @@ export function constructWebhookEvent(rawBody: string, signature: string): Strip
   }
   return stripe.webhooks.constructEvent(rawBody, signature, secret);
 }
+

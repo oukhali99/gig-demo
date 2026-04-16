@@ -1,4 +1,4 @@
-export type PaymentStatus = 'hold_created' | 'released' | 'refunded';
+export type PaymentStatus = 'hold_created' | 'released' | 'transferred' | 'transfer_failed' | 'refunded';
 
 export interface Payment {
   paymentId: string;
@@ -12,6 +12,7 @@ export interface Payment {
   clientId?: string;
   workerId?: string;
   stripePaymentIntentId?: string;
+  transferId?: string;
 }
 
 export interface CreateHoldInput {

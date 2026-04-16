@@ -64,8 +64,23 @@ export async function onBookingConfirmed(
   }
 }
 
-/** Called when booking is completed — captures the Stripe hold and marks payment released. */
-export async function onBookingCompleted(bookingId: string, correlationId: string): Promise<void> {
+function getPlatformFeePercent(): number {
+  const raw = process.env.PLATFORM_FEE_PERCENT;
+  if (!raw) return 10;
+  const n = parseFloat(raw);
+  return Number.isFinite(n) && n >= 0 && n <= 100 ? n : 10;
+}
+
+/**
+ * Called when booking is completed — captures the Stripe hold, transfers worker share, marks
+ * payment `transferred`. If the transfer fails the booking still completes but status becomes
+ * `transfer_failed` so an operator can resolve it.
+ */
+export async function onBookingCompleted(
+  bookingId: string,
+  correlationId: string,
+  workerStripeAccountId?: string
+): Promise<void> {
   const payment = await repo.getPaymentByBookingId(bookingId);
   if (!payment || payment.status !== 'hold_created') return;
 
@@ -74,6 +89,28 @@ export async function onBookingCompleted(bookingId: string, correlationId: strin
   }
 
   const updatedAt = new Date().toISOString();
+
+  if (payment.stripePaymentIntentId && workerStripeAccountId && stripeClient.isStripeConfigured()) {
+    const feePercent = getPlatformFeePercent();
+    const transferAmount = Math.floor(payment.amount * (1 - feePercent / 100));
+    try {
+      const transfer = await stripeClient.createTransfer({
+        amountCents: transferAmount,
+        currency: payment.currency,
+        destination: workerStripeAccountId,
+        bookingId,
+      });
+      const updated = await repo.updatePaymentStatus(payment.paymentId, 'transferred', updatedAt, transfer.id);
+      if (updated) await events.publishPaymentCompleted(updated, correlationId);
+      return;
+    } catch (err) {
+      console.error('Stripe transfer failed for payment', payment.paymentId, err);
+      const updated = await repo.updatePaymentStatus(payment.paymentId, 'transfer_failed', updatedAt);
+      if (updated) await events.publishPaymentCompleted(updated, correlationId);
+      return;
+    }
+  }
+
   const updated = await repo.updatePaymentStatus(payment.paymentId, 'released', updatedAt);
   if (updated) {
     await events.publishPaymentCompleted(updated, correlationId);

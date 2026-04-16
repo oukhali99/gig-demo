@@ -50,6 +50,9 @@ No shared database across “logical” services: **one table per domain**, all 
 | `job.budget` | Integer (cents) | e.g. `5000` = $50.00. Frontend converts dollar input to cents on submit. |
 | `payment.amount` | Integer (cents) | Matches the job budget at booking confirmation time. |
 | `payment.stripePaymentIntentId` | String (optional) | Set when a Stripe PaymentIntent was created for this payment; used to capture or cancel the hold. |
+| `payment.transferId` | String (optional) | Set when a Stripe Transfer to the worker's Express account succeeds. |
+| `payment.status` | Enum | `hold_created` → `released` → `transferred` \| `transfer_failed` \| `refunded` |
+| `cognito:custom:stripeAccountId` | String (optional) | Worker's Stripe Express account id. Stored as a Cognito custom attribute; included in the ID token JWT via `read_attributes`. |
 
 ---
 
@@ -57,4 +60,9 @@ No shared database across “logical” services: **one table per domain**, all 
 
 - Passwords: handled by **Cognito** only; not stored in app tables.
 - Tokens: returned to clients on login/refresh; not logged by design (avoid logging `Authorization` in application code).
-- Stripe keys: stored as **SecureString** in SSM Parameter Store (`/{env}/api/STRIPE_SECRET_KEY`, `/{env}/api/STRIPE_WEBHOOK_SECRET`). Lambda reads them at invocation via `GetParametersByPath` with `WithDecryption: true`.
+- Stripe keys: stored as **SecureString** in SSM Parameter Store:
+  - `/{env}/api/STRIPE_SECRET_KEY` — platform secret key
+  - `/{env}/api/STRIPE_WEBHOOK_SECRET` — single webhook signing secret (covers both platform and Connect events — one endpoint registered with "Connected accounts" enabled)
+  - Both use `lifecycle { ignore_changes = [value] }` for out-of-band rotation.
+- `PLATFORM_FEE_PERCENT` stored as plain String in SSM (`/{env}/api/PLATFORM_FEE_PERCENT`). Default `10`.
+- Worker `stripeAccountId` stored in Cognito `custom:stripeAccountId` — not DynamoDB. Included in JWT for zero-latency booking gate checks.
