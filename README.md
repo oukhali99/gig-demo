@@ -85,17 +85,14 @@ This builds the Lambda bundle, runs `terraform apply`, sets `app/frontend/.env` 
 Add your Stripe keys to the tfvars file for each environment:
 
 ```hcl
-stripe_secret_key     = "sk_test_..."
-stripe_webhook_secret = "whsec_..."
+stripe_secret_key      = "sk_test_..."
+stripe_webhook_secret  = "whsec_..."
+stripe_publishable_key = "pk_test_..."
 ```
 
-And add the publishable key to `app/frontend/.env`:
+`stripe_secret_key` and `stripe_webhook_secret` are stored as **SecureString** in SSM (`/{env}/api/STRIPE_SECRET_KEY`, `/{env}/api/STRIPE_WEBHOOK_SECRET`). `stripe_publishable_key` is passed through as a Terraform output and injected into `app/frontend/.env` as `VITE_STRIPE_PUBLISHABLE_KEY` automatically by `scripts/update-frontend-env.sh` during every deploy — no manual `.env` edit needed.
 
-```
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
-```
-
-Keys are stored as **SecureString** in SSM (`/{env}/api/STRIPE_SECRET_KEY`, `/{env}/api/STRIPE_WEBHOOK_SECRET`). Register `POST /payments/webhook` in the Stripe dashboard pointing at your API URL. Without Stripe keys, the booking confirm flow works without card collection (local dev / demo mode).
+Register `POST /payments/webhook` in the Stripe dashboard pointing at your API URL, subscribing to the `payment_intent.canceled` event. Without Stripe keys, the booking confirm flow works without card collection (local dev / demo mode).
 
 ### CodePipeline
 

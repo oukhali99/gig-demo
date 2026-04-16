@@ -114,6 +114,6 @@ Future splits (e.g. multiple Lambdas or services) can reintroduce a bus or direc
 
 - **Build**: `yarn workspace gig-api build:lambda` produces `app/api/build/package`.
 - **Apply**: `yarn deploy` (or `terraform apply` under `infra/`) uploads the zip and updates AWS resources.
-- **Frontend env**: `scripts/update-frontend-env.sh` sets `VITE_API_URL` from `terraform output api_url`.
+- **Frontend env**: `scripts/update-frontend-env.sh` sets `VITE_API_URL` and `VITE_STRIPE_PUBLISHABLE_KEY` from Terraform outputs after every apply.
 
 See root [README.md](../README.md) for commands.

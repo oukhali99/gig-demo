@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" modified="2026-03-27T00:00:00.000Z" agent="Cursor" version="24.0.0">
   <diagram id="gig-demo-aws" name="Page-1">
-    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900" math="0" shadow="0">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -130,6 +130,30 @@
         </mxCell>
         <mxCell id="gig-note-ci" value="Terraform init uses env-specific backend (local .hcl or CodeBuild TF_* vars); same modules apply for dev and prod." style="text;html=1;align=left;verticalAlign=top;spacing=4;fontSize=11;fontColor=#232F3E;fillColor=#f8f8f8;strokeColor=#cccccc;whiteSpace=wrap;" parent="gig-cloud" vertex="1">
           <mxGeometry x="520" y="460" width="480" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Stripe (external) -->
+        <mxCell id="gig-stripe-label" value="External" style="text;html=1;align=center;verticalAlign=top;fontSize=10;fontStyle=2;fontColor=#666666;" parent="gig-cloud" vertex="1">
+          <mxGeometry x="960" y="10" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="gig-stripe" value="Stripe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#635BFF;strokeColor=#4B4099;fontColor=#ffffff;fontSize=13;fontStyle=1;arcSize=15;" parent="gig-cloud" vertex="1">
+          <mxGeometry x="950" y="50" width="60" height="64" as="geometry" />
+        </mxCell>
+
+        <!-- Lambda API → Stripe: PaymentIntent calls -->
+        <mxCell id="gig-e-lam-stripe" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" parent="gig-cloud" source="gig-lambda-api" target="gig-stripe" edge="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="900" y="82" /></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="gig-e-lam-stripe-l" value="create / capture / cancel" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" parent="gig-e-lam-stripe" vertex="1" connectable="0">
+          <mxGeometry x="0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Stripe → API Gateway: webhook POST /payments/webhook -->
+        <mxCell id="gig-e-stripe-apigw" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;" parent="gig-cloud" source="gig-stripe" target="gig-apigw" edge="1">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="900" y="145" /><mxPoint x="542" y="145" /></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="gig-e-stripe-apigw-l" value="webhook POST /payments/webhook" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;" parent="gig-e-stripe-apigw" vertex="1" connectable="0">
+          <mxGeometry x="0.2" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
