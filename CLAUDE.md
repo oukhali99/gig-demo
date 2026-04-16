@@ -77,12 +77,14 @@ terraform apply             # REQUIRES human approval
   - `infra/outputs.tf` — expose as output if the frontend or a script needs to read it
   - `scripts/update-frontend-env.sh` — if the var must be written to `app/frontend/.env` at deploy time
   - `infra/pipeline.tf` — add a `TF_VAR_*` CodeBuild environment variable so CI can pass it to `terraform apply`
+- **SSM config** — always call `ensureLambdaConfigFromSsm()` at the top of every Lambda handler entry point before reading `process.env`. It loads all SSM params into `process.env` once per container lifetime. Forgetting this means env vars are undefined on cold starts.
 - **Logging** — never use `console.log`, `console.error`, or `console.warn` directly. Always use `logger` from `app/api/src/lib/logger.ts`:
   - `logger.debug(msg, data?)` — verbose, dev only (filtered out in prod by default)
   - `logger.info(msg, data?)` — notable events (Stripe webhook received, image moderation decision)
   - `logger.warn(msg, data?)` — recoverable non-critical failures (S3 cleanup failed)
   - `logger.error(msg, data?)` — unexpected errors that need investigation
   - Level is controlled by `LOG_LEVEL` env var (SSM), configured per environment via `log_level` in tfvars. Default: `WARN`. Dev default: `DEBUG`. Output is structured JSON.
+  - The `data` param must be `Record<string, unknown>` — do not pass `Error` objects or raw strings directly; serialize them: `{ error: String(err) }`.
 
 ## Workflow
 
@@ -90,7 +92,7 @@ After **every** code or infrastructure change, verify it compiles/validates befo
 
 | Changed area | Verification command |
 |---|---|
-| `app/api/` | `cd app/api && npm run build` |
+| `app/api/` | `yarn workspace gig-api build` |
 | `app/frontend/` | `cd app/frontend && npm run build` |
 | `infra/` | `cd infra && terraform fmt -check && terraform validate` |
 
@@ -115,3 +117,5 @@ Run only the command(s) relevant to what was changed. Fix any errors before fini
 - `budget` (jobs) and `amount` (payments) are **integer cents** (e.g. 5000 = $50.00) — frontend converts dollars to cents on input
 - `listJobs` filters category/location **client-side** after DynamoDB returns a page — returned page may be smaller than requested limit
 - Category/location post-filtering means `nextCursor` can be present even when no more matching items exist
+- **Stripe booking gate requires a fresh JWT** — after a worker completes Stripe onboarding, their existing token does not yet carry `custom:stripeAccountId`. They need a token refresh (or new sign-in) before the `POST /bookings` gate will pass. Do not "fix" this by switching the gate to a Cognito API call — the JWT-claim approach is intentional for zero-latency checks.
+- **`transfer_failed` does not roll back the booking** — if the Stripe transfer fails on booking completion, `booking.status` is `completed` and `payment.status` is `transfer_failed`. The booking is done; the operator resolves the transfer via Stripe dashboard. Do not add rollback logic here.

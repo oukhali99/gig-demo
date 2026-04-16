@@ -58,6 +58,9 @@ async function handleCreateBooking(event: APIGatewayProxyEventV2): Promise<APIGa
       return json(403, { code: 'STRIPE_NOT_ONBOARDED', message: 'You must set up payouts before applying for jobs' });
     }
   }
+  else {
+    logger.warn('Stripe not configured — skipping payout method check');
+  }
 
   const now = new Date().toISOString();
   const bookingId = randomUUID();
