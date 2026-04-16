@@ -437,6 +437,10 @@ resource "aws_codebuild_project" "deploy" {
       name  = "TF_VAR_platform_fee_percent"
       value = tostring(var.platform_fee_percent)
     }
+    environment_variable {
+      name  = "TF_VAR_log_level"
+      value = var.log_level
+    }
   }
 
   logs_config {

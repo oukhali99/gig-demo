@@ -1,7 +1,7 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
-import { json, getSubFromEvent } from '../lib/index.js';
+import { json, getSubFromEvent, logger } from '../lib/index.js';
 
 const ddb = new DynamoDBClient({});
 const tableName = process.env.NOTIFICATIONS_TABLE_NAME ?? '';
@@ -45,7 +45,7 @@ export async function handleNotifications(event: APIGatewayProxyEventV2): Promis
 
     return json(200, { items });
   } catch (err) {
-    console.error('notifications HTTP error', err);
+    logger.error('notifications HTTP error', { error: String(err) });
     return json(500, { code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 }

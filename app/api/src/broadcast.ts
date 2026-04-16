@@ -5,7 +5,7 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import type { EventEnvelope } from './lib/index.js';
-import { devLog } from './lib/index.js';
+import { logger } from './lib/index.js';
 
 const ddb = new DynamoDBClient({});
 const tableName = process.env.NOTIFICATIONS_TABLE_NAME ?? '';
@@ -115,7 +115,7 @@ async function persistNotification(
 /** In-process fan-out: write notification inbox rows for an envelope (replaces EventBridge → notifications Lambda). */
 export async function broadcastEvent(envelope: EventEnvelope): Promise<void> {
   if (!tableName) {
-    devLog('broadcast skip: no NOTIFICATIONS_TABLE_NAME', {});
+    logger.debug('broadcast skip: no NOTIFICATIONS_TABLE_NAME');
     return;
   }
   const eventId = envelope.eventId;

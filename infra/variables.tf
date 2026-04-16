@@ -210,3 +210,13 @@ variable "platform_fee_percent" {
     error_message = "platform_fee_percent must be between 0 and 100."
   }
 }
+
+variable "log_level" {
+  description = "Minimum log level for the API Lambda. Stored in SSM (LOG_LEVEL). One of DEBUG, INFO, WARN, ERROR. Default: WARN."
+  type        = string
+  default     = "WARN"
+  validation {
+    condition     = contains(["DEBUG", "INFO", "WARN", "ERROR"], var.log_level)
+    error_message = "log_level must be one of DEBUG, INFO, WARN, ERROR."
+  }
+}

@@ -1,5 +1,5 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
-import { devLog, json, parseBody, getClaims } from '../lib/index.js';
+import { logger, json, parseBody, getClaims } from '../lib/index.js';
 import * as cognito from './cognito.js';
 import * as stripeClient from '../payments/stripe-client.js';
 
@@ -191,7 +191,7 @@ export async function handleIdentity(event: APIGatewayProxyEventV2): Promise<API
   const method = event.requestContext?.http?.method ?? 'GET';
   const path = event.rawPath ?? '';
 
-  devLog('identity request', { method, path, requestId: event.requestContext?.requestId });
+  logger.debug('identity request', { method, path, requestId: event.requestContext?.requestId });
 
   try {
     let response: APIGatewayProxyResultV2;
@@ -216,11 +216,10 @@ export async function handleIdentity(event: APIGatewayProxyEventV2): Promise<API
       }
     } else response = json(404, { code: 'NOT_FOUND', message: 'Route not found' });
 
-    devLog('identity response', { method, path, statusCode: (response as { statusCode?: number }).statusCode });
+    logger.debug('identity response', { method, path, statusCode: (response as { statusCode?: number }).statusCode });
     return response;
   } catch (err) {
-    console.error('Identity handler error', err);
-    devLog('identity handler error', { method, path, error: String(err) });
+    logger.error('identity handler error', { method, path, error: String(err) });
     return json(500, { code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 }

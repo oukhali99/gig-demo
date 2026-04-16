@@ -1,7 +1,7 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { randomUUID } from 'crypto';
 import {
-  devLog,
+  logger,
   json,
   badRequest,
   getSubFromEvent,
@@ -95,8 +95,7 @@ export async function handleReviews(event: APIGatewayProxyEventV2): Promise<APIG
     }
     return json(404, { code: 'NOT_FOUND', message: 'Route not found' });
   } catch (err) {
-    console.error('reviews handler error', err);
-    devLog('reviews error', { path, error: String(err) });
+    logger.error('reviews handler error', { path, error: String(err) });
     return json(500, { code: 'INTERNAL_ERROR', message: 'Internal server error' });
   }
 }

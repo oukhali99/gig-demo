@@ -77,6 +77,12 @@ terraform apply             # REQUIRES human approval
   - `infra/outputs.tf` — expose as output if the frontend or a script needs to read it
   - `scripts/update-frontend-env.sh` — if the var must be written to `app/frontend/.env` at deploy time
   - `infra/pipeline.tf` — add a `TF_VAR_*` CodeBuild environment variable so CI can pass it to `terraform apply`
+- **Logging** — never use `console.log`, `console.error`, or `console.warn` directly. Always use `logger` from `app/api/src/lib/logger.ts`:
+  - `logger.debug(msg, data?)` — verbose, dev only (filtered out in prod by default)
+  - `logger.info(msg, data?)` — notable events (Stripe webhook received, image moderation decision)
+  - `logger.warn(msg, data?)` — recoverable non-critical failures (S3 cleanup failed)
+  - `logger.error(msg, data?)` — unexpected errors that need investigation
+  - Level is controlled by `LOG_LEVEL` env var (SSM), configured per environment via `log_level` in tfvars. Default: `WARN`. Dev default: `DEBUG`. Output is structured JSON.
 
 ## Workflow
 

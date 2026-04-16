@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { logger } from '../lib/index.js';
 import * as repo from './repository.js';
 import * as events from './events.js';
 import * as stripeClient from './stripe-client.js';
@@ -104,7 +105,7 @@ export async function onBookingCompleted(
       if (updated) await events.publishPaymentCompleted(updated, correlationId);
       return;
     } catch (err) {
-      console.error('Stripe transfer failed for payment', payment.paymentId, err);
+      logger.error('Stripe transfer failed', { paymentId: payment.paymentId, error: String(err) });
       const updated = await repo.updatePaymentStatus(payment.paymentId, 'transfer_failed', updatedAt);
       if (updated) await events.publishPaymentCompleted(updated, correlationId);
       return;

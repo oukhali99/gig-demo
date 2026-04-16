@@ -1,6 +1,6 @@
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { randomUUID } from 'crypto';
-import { devLog, json, badRequest, notFound, getCorrelationId, getSubFromEvent, parseBody } from '../lib/index.js';
+import { logger, json, badRequest, notFound, getCorrelationId, getSubFromEvent, parseBody } from '../lib/index.js';
 import * as repo from './repository.js';
 import * as events from './events.js';
 import * as images from '../shared/images.js';
@@ -334,7 +334,7 @@ async function handleDeleteJob(event: APIGatewayProxyEventV2): Promise<APIGatewa
     try {
       await images.deleteObject(key);
     } catch {
-      console.error('Failed to delete job image from S3', key);
+      logger.warn('Failed to delete job image from S3', { key });
     }
   }
 
@@ -417,11 +417,10 @@ export async function handleJobs(event: APIGatewayProxyEventV2): Promise<APIGate
   if (handlerFn) {
     try {
       const response = await handlerFn(event);
-      devLog('jobs response', { method, path, statusCode: (response as { statusCode?: number }).statusCode });
+      logger.debug('jobs response', { method, path, statusCode: (response as { statusCode?: number }).statusCode });
       return response;
     } catch (err) {
-      console.error('Handler error', err);
-      devLog('jobs handler error', { method, path, error: String(err) });
+      logger.error('jobs handler error', { method, path, error: String(err) });
       return json(500, { code: 'INTERNAL_ERROR', message: 'Internal server error' });
     }
   }

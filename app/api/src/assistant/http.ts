@@ -1,5 +1,5 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
-import { badRequest, getSubFromEvent, json, parseBody } from '../lib/index.js';
+import { badRequest, getSubFromEvent, json, logger, parseBody } from '../lib/index.js';
 import * as textMod from '../shared/text-moderation.js';
 import { converseAssistant } from './bedrock.js';
 import { isAssistantPurpose, systemPromptForPurpose, type AssistantPurpose } from './purposes.js';
@@ -147,7 +147,7 @@ export async function handleAssistant(event: APIGatewayProxyEventV2): Promise<AP
     });
   } catch (e: unknown) {
     const name = e && typeof e === 'object' && 'name' in e ? String((e as { name?: string }).name) : '';
-    console.error('assistant bedrock error', name, e);
+    logger.error('assistant bedrock error', { name, error: String(e) });
     return json(502, {
       code: 'ASSISTANT_UPSTREAM_ERROR',
       message: 'The writing assistant is temporarily unavailable. Please try again.',

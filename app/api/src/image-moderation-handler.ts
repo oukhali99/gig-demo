@@ -7,6 +7,7 @@ import {
   setObjectModerationStateInBucket,
   deleteObjectInBucket,
 } from './shared/images.js';
+import { logger } from './lib/index.js';
 
 function decodeS3Key(rawKey: string): string {
   return decodeURIComponent(rawKey.replace(/\+/g, ' '));
@@ -32,14 +33,7 @@ export async function handler(event: S3Event): Promise<void> {
       }
       if (moderation.decision === 'pending_review') {
         await setObjectModerationStateInBucket(bucket, key, 'pending_review');
-        console.log(
-          JSON.stringify({
-            msg: 'image_moderation_pending_review',
-            key,
-            topLabel: moderation.topLabel,
-            maxConfidence: moderation.maxConfidence,
-          })
-        );
+        logger.info('image_moderation_pending_review', { key, topLabel: moderation.topLabel, maxConfidence: moderation.maxConfidence });
         return;
       }
 
@@ -53,9 +47,7 @@ export async function handler(event: S3Event): Promise<void> {
           if (bookingId) await bookingsRepo.removeBookingImageKey(bookingId, key, updatedAt);
         }
       } catch (err) {
-        console.error(
-          JSON.stringify({ msg: 'remove_image_key_from_record_failed', key, error: String(err) })
-        );
+        logger.error('remove_image_key_from_record_failed', { key, error: String(err) });
       }
       await deleteObjectInBucket(bucket, key).catch(() => {});
     })

@@ -21,6 +21,9 @@ github_branch         = "main"
 # image_moderation_manual_review_min_confidence = 55
 # image_moderation_auto_reject_min_confidence   = 75
 
+# Logging
+log_level = "WARN"
+
 # Stripe (leave empty to disable payments)
 # stripe_secret_key      = "sk_live_..."   # stored as SecureString in SSM; rotate out-of-band
 # stripe_webhook_secret  = "whsec_..."     # single webhook secret for platform + Connect events

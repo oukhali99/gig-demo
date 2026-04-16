@@ -1,7 +1,7 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { randomUUID } from 'crypto';
 import {
-  devLog,
+  logger,
   json,
   badRequest,
   notFound,
@@ -254,7 +254,7 @@ async function handleWebhook(event: APIGatewayProxyEventV2): Promise<APIGatewayP
   // created. This branch exists for logging and future extensibility.
   if (stripeEvent.type === 'account.updated') {
     const account = stripeEvent.data.object as { id: string; details_submitted?: boolean };
-    console.log('Stripe Connect account.updated', { accountId: account.id, detailsSubmitted: account.details_submitted });
+    logger.info('Stripe Connect account.updated', { accountId: account.id, detailsSubmitted: account.details_submitted });
   }
 
   return json(200, { received: true });
@@ -282,11 +282,10 @@ export async function handlePayments(event: APIGatewayProxyEventV2): Promise<API
   if (handlerFn) {
     try {
       const response = await handlerFn(event);
-      devLog('payments response', { method, path, statusCode: (response as { statusCode?: number }).statusCode });
+      logger.debug('payments response', { method, path, statusCode: (response as { statusCode?: number }).statusCode });
       return response;
     } catch (err) {
-      console.error('Payments handler error', err);
-      devLog('payments handler error', { method, path, error: String(err) });
+      logger.error('payments handler error', { method, path, error: String(err) });
       return json(500, { code: 'INTERNAL_ERROR', message: 'Internal server error' });
     }
   }

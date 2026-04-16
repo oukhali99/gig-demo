@@ -1,6 +1,6 @@
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
 import { randomUUID } from 'crypto';
-import { devLog, json, badRequest, notFound, getCorrelationId, getIdempotencyKey, getSubFromEvent, getClaims, parseBody } from '../lib/index.js';
+import { logger, json, badRequest, notFound, getCorrelationId, getIdempotencyKey, getSubFromEvent, getClaims, parseBody } from '../lib/index.js';
 import * as repo from './repository.js';
 import * as events from './events.js';
 import * as images from '../shared/images.js';
@@ -357,11 +357,10 @@ export async function handleBookings(event: APIGatewayProxyEventV2): Promise<API
   if (handlerFn) {
     try {
       const response = await handlerFn(event);
-      devLog('bookings response', { method, path, statusCode: (response as { statusCode?: number }).statusCode });
+      logger.debug('bookings response', { method, path, statusCode: (response as { statusCode?: number }).statusCode });
       return response;
     } catch (err) {
-      console.error('Bookings handler error', err);
-      devLog('bookings handler error', { method, path, error: String(err) });
+      logger.error('bookings handler error', { method, path, error: String(err) });
       return json(500, { code: 'INTERNAL_ERROR', message: 'Internal server error' });
     }
   }
