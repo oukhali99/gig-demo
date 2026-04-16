@@ -48,7 +48,7 @@ terraform apply             # REQUIRES human approval
 - **Routing**: Single Lambda, hand-rolled router in `handler.ts` dispatches by path prefix to domain modules (`/jobs`, `/bookings`, `/payments`, `/notifications`, `/reviews`, `/assistant`, `/admin`, `/auth`, `/users`)
 - **Auth**: All routes except `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh` are protected by Cognito JWT authorizer at API Gateway level. Admin ops gated on `custom:role=admin` claim in application code
 - **Events**: No EventBridge — `broadcast.ts` writes directly to the notifications DynamoDB table
-- **Config**: SSM Parameter Store, loaded per-invocation (no cache) via `app/api/src/config/ssm.ts`
+- **Config**: SSM Parameter Store, loaded once per container lifetime (cached in module scope) via `app/api/src/config/ssm.ts`
 - **Image moderation**: Upload to S3 → triggers moderation Lambda → Rekognition labels → tag or delete object; CloudFront only serves approved objects
 - **AI**: Comprehend for text toxicity, Rekognition for image labels, Bedrock (Claude Haiku) for writing assistant
 
@@ -77,6 +77,7 @@ terraform apply             # REQUIRES human approval
   - `infra/outputs.tf` — expose as output if the frontend or a script needs to read it
   - `scripts/update-frontend-env.sh` — if the var must be written to `app/frontend/.env` at deploy time
   - `infra/pipeline.tf` — add a `TF_VAR_*` CodeBuild environment variable so CI can pass it to `terraform apply`
+  - **SecureString SSM parameters** — if the new var is a `SecureString`, also add its full ARN to the `kms:EncryptionContext:PARAMETER_ARN` list in the `api_lambda_ssm` policy in `infra/iam.tf`. Without this the Lambda cannot decrypt it and it will silently be absent from `process.env`.
 - **SSM config** — always call `ensureLambdaConfigFromSsm()` at the top of every Lambda handler entry point before reading `process.env`. It loads all SSM params into `process.env` once per container lifetime. Forgetting this means env vars are undefined on cold starts.
 - **Logging** — never use `console.log`, `console.error`, or `console.warn` directly. Always use `logger` from `app/api/src/lib/logger.ts`:
   - `logger.debug(msg, data?)` — verbose, dev only (filtered out in prod by default)

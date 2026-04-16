@@ -68,6 +68,8 @@ locals {
     "GET /auth/me"                          = true
     "GET /users/{id}"                       = true
     "PUT /users/{id}"                       = true
+    "POST /users/me/stripe/onboard"         = true
+    "GET /users/me/stripe/status"           = true
     "POST /assistant/chat"                  = true
     "GET /admin/moderation/pending"         = true
     "GET /admin/moderation/preview-url"     = true

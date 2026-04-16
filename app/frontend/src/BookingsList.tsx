@@ -95,7 +95,7 @@ export default function BookingsList() {
     Promise.all([
       listBookings({ workerId: sub, limit: 50 }),
       listJobs({ clientId: 'me', status: 'published', limit: 50 }).then((r) =>
-        Promise.all(r.items.map((job) => listBookings({ jobId: job.jobId, limit: 20 }).then((br) => br.items)))
+        Promise.all(r.items.map((job) => listBookings({ jobId: job.jobId, limit: 20 }).then((br) => br.items).catch(() => [] as Booking[])))
       ).then((arrays) => arrays.flat()),
     ])
       .then(([workerRes, clientBookings]) => {
@@ -114,11 +114,11 @@ export default function BookingsList() {
             list.forEach(([id, user]) => { usersMap[id] = user; });
             setUsers(usersMap);
           });
-        return Promise.all(jobIds.map((id: string) => getJob(id).then((job: Job) => [id, job] as const)));
+        return Promise.all(jobIds.map((id: string) => getJob(id).then((job: Job) => [id, job] as const).catch(() => null)));
       })
       .then((jobPairs) => {
         const jobMap: Record<string, Job> = {};
-        (jobPairs as [string, Job][]).forEach(([id, job]) => { jobMap[id] = job; });
+        (jobPairs as ([string, Job] | null)[]).forEach((pair) => { if (pair) jobMap[pair[0]] = pair[1]; });
         setJobs(jobMap);
       })
       .catch((e) => setError(e.message))

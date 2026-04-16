@@ -1,12 +1,15 @@
 import { GetParametersByPathCommand, SSMClient } from '@aws-sdk/client-ssm';
 
 const client = new SSMClient({});
+let loaded = false;
 
 /**
  * When SSM_PARAMETER_PATH is set (Lambda), loads parameters from that path into process.env.
- * Called once per invocation (no cache). Local dev: omit SSM_PARAMETER_PATH and set env vars directly.
+ * Runs once per container lifetime (subsequent calls are no-ops). Local dev: omit
+ * SSM_PARAMETER_PATH and set env vars directly.
  */
 export async function ensureLambdaConfigFromSsm(): Promise<void> {
+  if (loaded) return;
   const prefix = process.env.SSM_PARAMETER_PATH?.trim();
   if (!prefix) return;
 
@@ -32,4 +35,5 @@ export async function ensureLambdaConfigFromSsm(): Promise<void> {
     const short = segments[segments.length - 1];
     if (short) process.env[short] = p.Value;
   }
+  loaded = true;
 }

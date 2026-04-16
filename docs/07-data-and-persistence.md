@@ -63,6 +63,6 @@ No shared database across “logical” services: **one table per domain**, all 
 - Stripe keys: stored as **SecureString** in SSM Parameter Store:
   - `/{env}/api/STRIPE_SECRET_KEY` — platform secret key
   - `/{env}/api/STRIPE_WEBHOOK_SECRET` — single webhook signing secret (covers both platform and Connect events — one endpoint registered with "Connected accounts" enabled)
-  - Both use `lifecycle { ignore_changes = [value] }` for out-of-band rotation.
+  - Both are managed by Terraform from tfvars (gitignored). To rotate, update the value in tfvars and re-apply.
 - `PLATFORM_FEE_PERCENT` stored as plain String in SSM (`/{env}/api/PLATFORM_FEE_PERCENT`). Default `10`.
 - Worker `stripeAccountId` stored in Cognito `custom:stripeAccountId` — not DynamoDB. Included in JWT for zero-latency booking gate checks.

@@ -161,9 +161,22 @@ resource "aws_iam_role_policy" "api_lambda_ssm" {
         Resource = "arn:${data.aws_partition.current.partition}:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/${local.name_env}/api/*"
       },
       {
+        # Decrypt only the SecureString SSM parameters this Lambda actually needs.
+        # SSM passes the parameter ARN in the KMS encryption context — use that to
+        # restrict scope. When adding a new SecureString SSM parameter for the API
+        # Lambda, add its ARN to this list (see CLAUDE.md — Conventions).
         Effect   = "Allow"
         Action   = ["kms:Decrypt"]
-        Resource = "arn:${data.aws_partition.current.partition}:kms:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:alias/aws/ssm"
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "kms:ViaService" = "ssm.${data.aws_region.current.name}.amazonaws.com"
+            "kms:EncryptionContext:PARAMETER_ARN" = [
+              "arn:${data.aws_partition.current.partition}:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/${local.name_env}/api/STRIPE_SECRET_KEY",
+              "arn:${data.aws_partition.current.partition}:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/${local.name_env}/api/STRIPE_WEBHOOK_SECRET",
+            ]
+          }
+        }
       }
     ]
   })
