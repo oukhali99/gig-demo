@@ -40,14 +40,20 @@ flowchart LR
     CP[completed]
     CX[cancelled]
   end
-  subgraph payment [Payment hooks]
-    H[ensure hold]
-    R[release]
-    F[refund]
+  subgraph payment [Payment hooks → Stripe]
+    H["create PaymentIntent hold\ncapture_method=manual"]
+    R["capture PaymentIntent\nworker gets paid"]
+    F["cancel PaymentIntent\nclient refunded"]
   end
   CF --> H
   CP --> R
   CX --> F
 ```
+
+- **confirmed**: Stripe PaymentIntent created (`capture_method: manual`). Card held, not charged. Requires `paymentMethodId` from Stripe Elements in the confirm flow.
+- **completed**: PaymentIntent captured — funds move to Stripe balance.
+- **cancelled**: PaymentIntent cancelled — hold released, client not charged.
+
+When Stripe is not configured or `paymentMethodId` is absent, a $0 placeholder payment record is created with no Stripe side effects (local dev path).
 
 Exact rules live in `app/api/src/payments/booking-hooks.ts` and `payments/http.ts`.

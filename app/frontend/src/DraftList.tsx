@@ -36,7 +36,7 @@ export default function DraftList() {
                 {job.title}
               </Link>
               <p className="job-card-meta">
-                {job.location} · ${job.budget} · {job.scheduledAt.slice(0, 10)}
+                {job.location} · ${(job.budget / 100).toFixed(2)} · {job.scheduledAt.slice(0, 10)}
               </p>
             </li>
           ))}

@@ -421,6 +421,18 @@ resource "aws_codebuild_project" "deploy" {
       name  = "TF_VAR_image_moderation_auto_reject_min_confidence"
       value = tostring(var.image_moderation_auto_reject_min_confidence)
     }
+    environment_variable {
+      name  = "TF_VAR_stripe_secret_key"
+      value = var.stripe_secret_key
+    }
+    environment_variable {
+      name  = "TF_VAR_stripe_webhook_secret"
+      value = var.stripe_webhook_secret
+    }
+    environment_variable {
+      name  = "TF_VAR_stripe_publishable_key"
+      value = var.stripe_publishable_key
+    }
   }
 
   logs_config {

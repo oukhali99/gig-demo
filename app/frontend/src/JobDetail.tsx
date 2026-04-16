@@ -146,7 +146,7 @@ export default function JobDetail() {
           </p>
         )}
         <p><strong>Location:</strong> {job.location}</p>
-        <p><strong>Budget:</strong> ${job.budget}</p>
+        <p><strong>Budget:</strong> ${(job.budget / 100).toFixed(2)}</p>
         <p><strong>Scheduled:</strong> {job.scheduledAt.slice(0, 16).replace('T', ' ')}</p>
         <p><strong>Category:</strong> {job.categoryId}</p>
         <p>{job.description}</p>

@@ -23,7 +23,13 @@ export default function CreateJob() {
     const scheduledAt = form.scheduledAt
       ? new Date(form.scheduledAt).toISOString()
       : new Date().toISOString();
-    createJob({ ...form, scheduledAt })
+    const budgetCents = Math.round(parseFloat(form.budget) * 100);
+    if (!Number.isFinite(budgetCents) || budgetCents < 1) {
+      setError('Budget must be a positive dollar amount (e.g. 50)');
+      setSubmitting(false);
+      return;
+    }
+    createJob({ ...form, budget: budgetCents, scheduledAt })
       .then((job) => navigate(`/jobs/${job.jobId}`))
       .catch((e) => setError(e.message))
       .finally(() => setSubmitting(false));

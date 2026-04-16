@@ -23,6 +23,11 @@ output "vite_api_url" {
   value       = "https://${local.api_host}"
 }
 
+output "vite_stripe_publishable_key" {
+  description = "Set VITE_STRIPE_PUBLISHABLE_KEY for frontend builds (empty string when Stripe is disabled)"
+  value       = var.stripe_publishable_key
+}
+
 output "frontend_bucket_name" {
   description = "S3 bucket for static frontend assets"
   value       = aws_s3_bucket.frontend.id

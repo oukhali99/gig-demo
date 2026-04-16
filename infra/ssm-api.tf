@@ -29,3 +29,23 @@ resource "aws_ssm_parameter" "api_runtime" {
   type  = "String"
   value = each.value
 }
+
+resource "aws_ssm_parameter" "stripe_secret_key" {
+  name  = "/${local.name_env}/api/STRIPE_SECRET_KEY"
+  type  = "SecureString"
+  value = var.stripe_secret_key != "" ? var.stripe_secret_key : "disabled"
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
+resource "aws_ssm_parameter" "stripe_webhook_secret" {
+  name  = "/${local.name_env}/api/STRIPE_WEBHOOK_SECRET"
+  type  = "SecureString"
+  value = var.stripe_webhook_secret != "" ? var.stripe_webhook_secret : "disabled"
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}

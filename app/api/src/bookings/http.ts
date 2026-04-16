@@ -143,13 +143,26 @@ async function handleConfirm(event: APIGatewayProxyEventV2): Promise<APIGatewayP
     return json(403, { code: 'FORBIDDEN', message: 'Only the job client may confirm' });
   }
 
+  const body = parseBody<{ paymentMethodId?: string }>(event);
+  const paymentMethodId = typeof body?.paymentMethodId === 'string' ? body.paymentMethodId.trim() : null;
+
+  const job = await jobsRepo.getJob(booking.jobId);
+  const budgetCents = typeof job?.budget === 'number' ? job.budget : 0;
+
+  const correlationId = getCorrelationId(event);
+
+  // Create payment hold (+ Stripe PaymentIntent) before confirming — rolls back cleanly on failure.
+  const hookErr = await paymentHooks.onBookingConfirmed(booking, budgetCents, paymentMethodId, correlationId).catch((e: unknown) => e as Error);
+  if (hookErr instanceof Error) {
+    const err = hookErr as Error & { code?: string };
+    return json(402, { code: err.code ?? 'PAYMENT_FAILED', message: err.message });
+  }
+
   const updatedAt = new Date().toISOString();
   const updated = await repo.updateBookingStatus(bookingId, 'confirmed', updatedAt);
   if (!updated) return notFound('Booking not found');
 
-  const correlationId = getCorrelationId(event);
   await events.publishBookingConfirmed(updated, correlationId);
-  await paymentHooks.onBookingConfirmed(updated, correlationId);
   return json(200, updated);
 }
 

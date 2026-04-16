@@ -58,6 +58,7 @@ export async function createPayment(payment: Payment): Promise<void> {
   if (payment.idempotencyKey) item.idempotencyKey = payment.idempotencyKey;
   if (payment.clientId) item.clientId = payment.clientId;
   if (payment.workerId) item.workerId = payment.workerId;
+  if (payment.stripePaymentIntentId) item.stripePaymentIntentId = payment.stripePaymentIntentId;
 
   await client.send(
     new PutItemCommand({

@@ -13,6 +13,7 @@ import {
 import * as repo from './repository.js';
 import * as events from './events.js';
 import * as bookingsRepo from '../bookings/repository.js';
+import * as stripeClient from './stripe-client.js';
 import type { CreateHoldInput, PaymentStatus } from './types.js';
 
 const DEFAULT_CURRENCY = 'USD';
@@ -32,15 +33,15 @@ function validateCreateHold(body: unknown): { ok: true; data: CreateHoldInput } 
   if (typeof o.bookingId !== 'string' || !o.bookingId.trim()) {
     errors.push({ field: 'bookingId', message: 'required non-empty string' });
   }
-  if (typeof o.amount !== 'string' || !o.amount.trim()) {
-    errors.push({ field: 'amount', message: 'required non-empty string' });
+  if (typeof o.amount !== 'number' || !Number.isInteger(o.amount) || o.amount < 0) {
+    errors.push({ field: 'amount', message: 'required non-negative integer (cents)' });
   }
   if (errors.length) return { ok: false, errors };
   return {
     ok: true,
     data: {
       bookingId: (o.bookingId as string).trim(),
-      amount: (o.amount as string).trim(),
+      amount: o.amount as number,
       currency: typeof o.currency === 'string' && o.currency.trim() ? (o.currency as string).trim() : DEFAULT_CURRENCY,
     },
   };
@@ -76,6 +77,23 @@ async function handleCreateHold(event: APIGatewayProxyEventV2): Promise<APIGatew
     return json(409, { code: 'CONFLICT', message: 'Hold requires a confirmed or in-progress booking' });
   }
 
+  const rawBody = body as Record<string, unknown>;
+  const paymentMethodId = typeof rawBody?.paymentMethodId === 'string' ? rawBody.paymentMethodId.trim() : null;
+
+  let stripePaymentIntentId: string | undefined;
+  if (paymentMethodId && validated.data.amount > 0 && stripeClient.isStripeConfigured()) {
+    const pi = await stripeClient.createPaymentIntent({
+      amountCents: validated.data.amount,
+      currency: validated.data.currency ?? DEFAULT_CURRENCY,
+      bookingId: validated.data.bookingId,
+      paymentMethodId,
+    });
+    if (pi.status !== 'requires_capture') {
+      return json(402, { code: 'PAYMENT_REQUIRES_ACTION', message: `Payment requires additional action (${pi.status})` });
+    }
+    stripePaymentIntentId = pi.id;
+  }
+
   const now = new Date().toISOString();
   const paymentId = randomUUID();
   const payment = {
@@ -89,6 +107,7 @@ async function handleCreateHold(event: APIGatewayProxyEventV2): Promise<APIGatew
     idempotencyKey,
     clientId: booking.clientId,
     workerId: booking.workerId,
+    stripePaymentIntentId,
   };
 
   try {
@@ -157,6 +176,10 @@ async function handleRelease(event: APIGatewayProxyEventV2): Promise<APIGatewayP
     return json(403, { code: 'FORBIDDEN', message: 'Only the client (job poster) may release payment' });
   }
 
+  if (payment.stripePaymentIntentId) {
+    await stripeClient.capturePaymentIntent(payment.stripePaymentIntentId);
+  }
+
   const updatedAt = new Date().toISOString();
   const updated = await repo.updatePaymentStatus(paymentId, 'released', updatedAt);
   if (!updated) return notFound('Payment not found');
@@ -182,6 +205,10 @@ async function handleRefund(event: APIGatewayProxyEventV2): Promise<APIGatewayPr
     return json(403, { code: 'FORBIDDEN', message: 'Only the client or worker may refund' });
   }
 
+  if (payment.stripePaymentIntentId) {
+    await stripeClient.refundPayment(payment.stripePaymentIntentId);
+  }
+
   const updatedAt = new Date().toISOString();
   const updated = await repo.updatePaymentStatus(paymentId, 'refunded', updatedAt);
   if (!updated) return notFound('Payment not found');
@@ -193,6 +220,38 @@ async function handleRefund(event: APIGatewayProxyEventV2): Promise<APIGatewayPr
   return json(200, updated);
 }
 
+async function handleWebhook(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
+  const signature = event.headers?.['stripe-signature'] ?? '';
+  if (!signature) {
+    return json(400, { code: 'INVALID', message: 'Missing Stripe-Signature header' });
+  }
+
+  const rawBody = event.isBase64Encoded
+    ? Buffer.from(event.body ?? '', 'base64').toString('utf-8')
+    : (event.body ?? '');
+
+  let stripeEvent: import('stripe').default.Event;
+  try {
+    stripeEvent = stripeClient.constructWebhookEvent(rawBody, signature);
+  } catch {
+    return json(400, { code: 'INVALID_SIGNATURE', message: 'Webhook signature verification failed' });
+  }
+
+  if (stripeEvent.type === 'payment_intent.canceled') {
+    const pi = stripeEvent.data.object as { metadata?: { bookingId?: string } };
+    const bookingId = pi.metadata?.bookingId;
+    if (bookingId) {
+      const payment = await repo.getPaymentByBookingId(bookingId);
+      if (payment && payment.status === 'hold_created') {
+        const updatedAt = new Date().toISOString();
+        await repo.updatePaymentStatus(payment.paymentId, 'refunded', updatedAt);
+      }
+    }
+  }
+
+  return json(200, { received: true });
+}
+
 type RouteHandler = (event: APIGatewayProxyEventV2) => Promise<APIGatewayProxyResultV2>;
 
 export async function handlePayments(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
@@ -200,7 +259,8 @@ export async function handlePayments(event: APIGatewayProxyEventV2): Promise<API
   const path = event.rawPath ?? '';
 
   let handlerFn: RouteHandler | undefined;
-  if (method === 'POST' && path === '/payments/hold') handlerFn = handleCreateHold;
+  if (method === 'POST' && path === '/payments/webhook') handlerFn = handleWebhook;
+  else if (method === 'POST' && path === '/payments/hold') handlerFn = handleCreateHold;
   else if (method === 'GET' && path === '/payments') handlerFn = handleListPayments;
   else if (method === 'GET' && path.startsWith('/payments/')) {
     const suffix = path.slice('/payments/'.length);

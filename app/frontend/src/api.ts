@@ -135,7 +135,7 @@ export interface Job {
   categoryId: string;
   location: string;
   description: string;
-  budget: string;
+  budget: number;
   scheduledAt: string;
   status: 'draft' | 'published' | 'closed';
   createdAt: string;
@@ -172,7 +172,7 @@ export interface CreateJobBody {
   categoryId: string;
   location: string;
   description: string;
-  budget: string;
+  budget: number;
   scheduledAt: string;
 }
 
@@ -320,8 +320,11 @@ export async function getBooking(id: string): Promise<Booking> {
   return request<Booking>(`/bookings/${id}`);
 }
 
-export async function confirmBooking(id: string): Promise<Booking> {
-  return request<Booking>(`/bookings/${id}/confirm`, { method: 'POST' });
+export async function confirmBooking(id: string, paymentMethodId?: string): Promise<Booking> {
+  return request<Booking>(`/bookings/${id}/confirm`, {
+    method: 'POST',
+    body: paymentMethodId ? JSON.stringify({ paymentMethodId }) : undefined,
+  });
 }
 
 export async function completeBooking(id: string): Promise<Booking> {
@@ -338,13 +341,14 @@ export type PaymentStatus = 'hold_created' | 'released' | 'refunded';
 export interface Payment {
   paymentId: string;
   bookingId: string;
-  amount: string;
+  amount: number;
   currency: string;
   status: PaymentStatus;
   createdAt: string;
   updatedAt: string;
   clientId?: string;
   workerId?: string;
+  stripePaymentIntentId?: string;
 }
 
 export interface ListPaymentsResponse {

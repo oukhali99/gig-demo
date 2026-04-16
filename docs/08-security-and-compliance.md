@@ -29,8 +29,9 @@ flowchart LR
 ## Secrets and configuration
 
 - **No secrets in repository**: Cognito app client has no secret (`generate_secret = false` for public SPA pattern).
-- Pool id and client id are passed to Lambda via **environment variables** from Terraform (non-secret identifiers).
-- For production hardening, prefer **SSM Parameter Store** or **Secrets Manager** if you add third-party API keys or DB credentials later.
+- Pool id and client id are passed to Lambda via SSM Parameter Store (loaded at invocation).
+- **Stripe keys** are stored as `SecureString` in SSM (`/{env}/api/STRIPE_SECRET_KEY`, `/{env}/api/STRIPE_WEBHOOK_SECRET`) and loaded by Lambda using `GetParametersByPath` with `WithDecryption: true`. They are never stored in plaintext in DynamoDB or Lambda environment variables.
+- Stripe webhook payloads are verified using the `Stripe-Signature` header and `stripe.webhooks.constructEvent` before any processing.
 
 ---
 
@@ -44,7 +45,9 @@ flowchart LR
 
 ## IAM
 
-- Lambda execution role uses **least privilege** inline policies scoped to specific table ARNs (and index ARNs where needed), the image bucket, Cognito admin/auth APIs on the user pool, Rekognition, and CloudWatch Logs (via AWS managed policy attachment).
+- **API Lambda** execution role uses least-privilege inline policies scoped to specific table ARNs, the image bucket, Cognito APIs on the user pool, Rekognition, Comprehend, Bedrock (pinned to specific model ARN), SSM parameter path, and CloudWatch Logs.
+- **Moderation Lambda** has a separate, minimal execution role: S3 (images bucket only), Rekognition, DynamoDB UpdateItem on jobs + bookings tables, SSM read, CloudWatch Logs. No Cognito, Comprehend, or Bedrock access.
+- **CodeBuild** role uses a scoped inline policy restricted to project-prefixed resources — not `AdministratorAccess`.
 
 ---
 

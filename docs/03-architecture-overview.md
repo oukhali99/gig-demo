@@ -96,12 +96,15 @@ Future splits (e.g. multiple Lambdas or services) can reintroduce a bus or direc
 
 | Area | Services |
 |------|----------|
-| **Compute** | Lambda (Node.js 20), one function for API |
+| **Compute** | Lambda (Node.js 20), one function for API + one for image moderation |
 | **API** | API Gateway HTTP API v2 |
-| **Auth** | Cognito User Pool + app client; JWT authorizer on protected routes |
+| **Auth** | Cognito User Pool + app client; JWT authorizer on protected routes; email verification flow |
 | **Data** | DynamoDB (on-demand) per table: jobs, bookings, payments, notifications, reviews |
 | **Objects** | S3 private bucket; presigned URLs from Lambda |
-| **ML / safety** | Rekognition image moderation |
+| **ML / safety** | Rekognition image moderation; Comprehend text toxicity detection; Bedrock (Claude Haiku) writing assistant |
+| **Payments** | Stripe Payment Intents (`capture_method: manual`); `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` in SSM SecureString |
+| **Config** | SSM Parameter Store (all runtime config loaded per invocation with `WithDecryption: true`) |
+| **CI/CD** | CodePipeline + CodeBuild (scoped IAM, not AdministratorAccess) |
 | **Grouping** | Resource Groups (tag `StackId` from Terraform provider `default_tags`) |
 | **IaC** | Terraform (`infra/*.tf`) |
 

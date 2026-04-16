@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useAuth } from './AuthContext';
 import {
   getUser,
@@ -13,6 +15,70 @@ import {
   type Job,
 } from './api';
 
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
+const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : null;
+
+interface ConfirmCardFormProps {
+  booking: Booking;
+  job: Job | undefined;
+  onSuccess: (updated: Booking) => void;
+  onCancel: () => void;
+}
+
+function ConfirmCardForm({ booking, job, onSuccess, onCancel }: ConfirmCardFormProps) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setError(null);
+    setSubmitting(true);
+    const card = elements.getElement(CardElement);
+    if (!card) {
+      setError('Card element not found');
+      setSubmitting(false);
+      return;
+    }
+    const { paymentMethod, error: pmErr } = await stripe.createPaymentMethod({ type: 'card', card });
+    if (pmErr || !paymentMethod) {
+      setError(pmErr?.message ?? 'Failed to process card');
+      setSubmitting(false);
+      return;
+    }
+    confirmBooking(booking.bookingId, paymentMethod.id)
+      .then(onSuccess)
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setSubmitting(false));
+  };
+
+  const budgetDisplay = job?.budget ? `$${(job.budget / 100).toFixed(2)}` : null;
+
+  return (
+    <form onSubmit={handleSubmit} className="card" style={{ marginTop: '0.5rem' }}>
+      <p style={{ marginBottom: '0.5rem' }}>
+        {budgetDisplay ? `A hold of ${budgetDisplay} will be placed on your card and captured when the job is complete.` : 'Confirm this booking.'}
+      </p>
+      {STRIPE_PUBLISHABLE_KEY && (
+        <div style={{ border: '1px solid #ccc', borderRadius: '4px', padding: '0.6rem', marginBottom: '0.75rem' }}>
+          <CardElement options={{ style: { base: { fontSize: '16px' } } }} />
+        </div>
+      )}
+      {error && <p className="error">{error}</p>}
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <button type="submit" disabled={submitting || (!!STRIPE_PUBLISHABLE_KEY && !stripe)}>
+          {submitting ? 'Confirming…' : 'Confirm booking'}
+        </button>
+        <button type="button" className="secondary" onClick={onCancel} disabled={submitting}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
 export default function BookingsList() {
   const { auth, loading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -21,6 +87,7 @@ export default function BookingsList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
+  const [confirmingBookingId, setConfirmingBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!auth?.user?.sub) return;
@@ -62,14 +129,6 @@ export default function BookingsList() {
     setBookings((prev) => prev.map((b) => (b.bookingId === bookingId ? updated : b)));
   };
 
-  const handleConfirm = (b: Booking) => {
-    setActing(b.bookingId);
-    confirmBooking(b.bookingId)
-      .then((updated) => refetchBooking(b.bookingId, updated))
-      .catch((e) => setError(e.message))
-      .finally(() => setActing(null));
-  };
-
   const handleComplete = (b: Booking) => {
     setActing(b.bookingId);
     completeBooking(b.bookingId)
@@ -104,6 +163,7 @@ export default function BookingsList() {
           {bookings.map((b) => {
             const job = jobs[b.jobId];
             const isClient = auth.user?.sub === b.clientId;
+            const isConfirming = confirmingBookingId === b.bookingId;
             return (
               <li key={b.bookingId} className="card booking-card">
                 <div className="booking-card-row">
@@ -129,12 +189,9 @@ export default function BookingsList() {
                     </p>
                   </div>
                   <div className="booking-card-actions">
-                    {b.status === 'requested' && isClient && (
-                      <button
-                        onClick={() => handleConfirm(b)}
-                        disabled={acting === b.bookingId}
-                      >
-                        {acting === b.bookingId ? 'Confirming…' : 'Confirm'}
+                    {b.status === 'requested' && isClient && !isConfirming && (
+                      <button onClick={() => setConfirmingBookingId(b.bookingId)}>
+                        Confirm
                       </button>
                     )}
                     {(b.status === 'confirmed' || b.status === 'in_progress') && (
@@ -145,7 +202,7 @@ export default function BookingsList() {
                         {acting === b.bookingId ? 'Completing…' : 'Mark complete'}
                       </button>
                     )}
-                    {b.status !== 'completed' && b.status !== 'cancelled' && (
+                    {b.status !== 'completed' && b.status !== 'cancelled' && !isConfirming && (
                       <button
                         type="button"
                         className="secondary"
@@ -157,6 +214,31 @@ export default function BookingsList() {
                     )}
                   </div>
                 </div>
+                {isConfirming && (
+                  stripePromise ? (
+                    <Elements stripe={stripePromise}>
+                      <ConfirmCardForm
+                        booking={b}
+                        job={job}
+                        onSuccess={(updated) => {
+                          refetchBooking(b.bookingId, updated);
+                          setConfirmingBookingId(null);
+                        }}
+                        onCancel={() => setConfirmingBookingId(null)}
+                      />
+                    </Elements>
+                  ) : (
+                    <ConfirmCardForm
+                      booking={b}
+                      job={job}
+                      onSuccess={(updated) => {
+                        refetchBooking(b.bookingId, updated);
+                        setConfirmingBookingId(null);
+                      }}
+                      onCancel={() => setConfirmingBookingId(null)}
+                    />
+                  )
+                )}
               </li>
             );
           })}

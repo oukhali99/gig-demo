@@ -80,6 +80,23 @@ yarn deploy:dev    # dev apply + frontend publish
 
 This builds the Lambda bundle, runs `terraform apply`, sets `app/frontend/.env` `VITE_API_URL` to the **API** URL (`terraform output -raw vite_api_url`), builds the SPA, syncs it to S3, and invalidates the **frontend** CloudFront distribution. Set **`images_public_url`** in tfvars to a third hostname (e.g. `https://images.example.com`) in the same Route 53 zone; image **GET** URLs use that CloudFront distribution (CORS for the SPA), while **PUT** uploads still use presigned S3 URLs. Outputs: `frontend_cloudfront_url`, `api_cloudfront_url`, `images_cloudfront_url`.
 
+### Stripe payments
+
+Add your Stripe keys to the tfvars file for each environment:
+
+```hcl
+stripe_secret_key     = "sk_test_..."
+stripe_webhook_secret = "whsec_..."
+```
+
+And add the publishable key to `app/frontend/.env`:
+
+```
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+```
+
+Keys are stored as **SecureString** in SSM (`/{env}/api/STRIPE_SECRET_KEY`, `/{env}/api/STRIPE_WEBHOOK_SECRET`). Register `POST /payments/webhook` in the Stripe dashboard pointing at your API URL. Without Stripe keys, the booking confirm flow works without card collection (local dev / demo mode).
+
 ### CodePipeline
 
 Set `github_connection_arn` (create a **CodeStar connection** to GitHub under Developer Tools → Connections and approve it in the console), `github_repository_id` (`owner/repo`), and `github_branch` in both environment tfvars files as needed. Every apply provisions the pipeline and CodeBuild project. Pushes to that branch run `buildspec.yml`, which calls **`yarn deploy:ci`** (no committed backend `.hcl` or `terraform.*.tfvars` required).

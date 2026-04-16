@@ -181,3 +181,22 @@ variable "assistant_bedrock_model_id" {
   default     = "anthropic.claude-3-haiku-20240307-v1:0"
 }
 
+variable "stripe_secret_key" {
+  description = "Stripe secret key (sk_test_... or sk_live_...). Stored as SecureString in SSM (STRIPE_SECRET_KEY). Leave empty to disable Stripe."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "stripe_webhook_secret" {
+  description = "Stripe webhook signing secret (whsec_...). Stored as SecureString in SSM (STRIPE_WEBHOOK_SECRET). Required for webhook signature verification."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "stripe_publishable_key" {
+  description = "Stripe publishable key (pk_test_... or pk_live_...). Injected into the frontend build as VITE_STRIPE_PUBLISHABLE_KEY. Leave empty to disable Stripe card input."
+  type        = string
+  default     = ""
+}

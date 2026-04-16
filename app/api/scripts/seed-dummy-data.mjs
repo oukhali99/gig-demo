@@ -105,7 +105,7 @@ async function main() {
       categoryId: CATEGORIES[i % CATEGORIES.length],
       location: CITIES[i % CITIES.length],
       description: `Bulk seed item ${i + 1}/${jobsN}. Deterministic demo data.`,
-      budget: String(50 + (i % 450)),
+      budget: (50 + (i % 450)) * 100,
       scheduledAt: t,
       status,
       createdAt: t,
@@ -147,7 +147,7 @@ async function main() {
     payments.push({
       paymentId,
       bookingId: bk.bookingId,
-      amount: `${(p % 200) + 25}.00`,
+      amount: ((p % 200) + 25) * 100,
       currency: 'USD',
       status: released ? 'released' : 'hold_created',
       createdAt: t0,

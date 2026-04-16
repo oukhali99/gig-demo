@@ -25,7 +25,7 @@ function validateCreate(body: unknown): { ok: true; data: CreateJobInput } | { o
   if (typeof o.categoryId !== 'string' || !o.categoryId.trim()) errors.push({ field: 'categoryId', message: 'required non-empty string' });
   if (typeof o.location !== 'string' || !o.location.trim()) errors.push({ field: 'location', message: 'required non-empty string' });
   if (typeof o.description !== 'string') errors.push({ field: 'description', message: 'required string' });
-  if (typeof o.budget !== 'string' || !o.budget.trim()) errors.push({ field: 'budget', message: 'required non-empty string' });
+  if (typeof o.budget !== 'number' || !Number.isInteger(o.budget) || o.budget < 1) errors.push({ field: 'budget', message: 'required positive integer (cents)' });
   if (typeof o.scheduledAt !== 'string' || !o.scheduledAt.trim()) errors.push({ field: 'scheduledAt', message: 'required non-empty string' });
   if (errors.length) return { ok: false, errors };
   const clientId: string = typeof o.clientId === 'string' && o.clientId.trim() ? o.clientId.trim() : 'anonymous';
@@ -36,7 +36,7 @@ function validateCreate(body: unknown): { ok: true; data: CreateJobInput } | { o
       categoryId: (o.categoryId as string).trim(),
       location: (o.location as string).trim(),
       description: (o.description as string).trim(),
-      budget: (o.budget as string).trim(),
+      budget: o.budget as number,
       scheduledAt: (o.scheduledAt as string).trim(),
       clientId,
     },

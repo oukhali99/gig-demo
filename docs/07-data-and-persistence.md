@@ -43,7 +43,18 @@ No shared database across “logical” services: **one table per domain**, all 
 
 ---
 
+## Field types
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `job.budget` | Integer (cents) | e.g. `5000` = $50.00. Frontend converts dollar input to cents on submit. |
+| `payment.amount` | Integer (cents) | Matches the job budget at booking confirmation time. |
+| `payment.stripePaymentIntentId` | String (optional) | Set when a Stripe PaymentIntent was created for this payment; used to capture or cancel the hold. |
+
+---
+
 ## Sensitive data
 
 - Passwords: handled by **Cognito** only; not stored in app tables.
 - Tokens: returned to clients on login/refresh; not logged by design (avoid logging `Authorization` in application code).
+- Stripe keys: stored as **SecureString** in SSM Parameter Store (`/{env}/api/STRIPE_SECRET_KEY`, `/{env}/api/STRIPE_WEBHOOK_SECRET`). Lambda reads them at invocation via `GetParametersByPath` with `WithDecryption: true`.

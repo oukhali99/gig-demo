@@ -8,7 +8,7 @@ export interface Job {
   categoryId: string;
   location: string;
   description: string;
-  budget: string;
+  budget: number;
   scheduledAt: string;
   status: JobStatus;
   createdAt: string;
@@ -21,7 +21,7 @@ export interface CreateJobInput {
   categoryId: string;
   location: string;
   description: string;
-  budget: string;
+  budget: number;
   scheduledAt: string;
   clientId?: string;
 }
@@ -31,7 +31,7 @@ export interface UpdateJobInput {
   categoryId?: string;
   location?: string;
   description?: string;
-  budget?: string;
+  budget?: number;
   scheduledAt?: string;
 }
 

@@ -115,3 +115,9 @@ resource "aws_apigatewayv2_route" "auth_resend_confirmation" {
   route_key = "POST /auth/resend-confirmation"
   target    = "integrations/${aws_apigatewayv2_integration.api.id}"
 }
+
+resource "aws_apigatewayv2_route" "payments_webhook" {
+  api_id    = aws_apigatewayv2_api.api.id
+  route_key = "POST /payments/webhook"
+  target    = "integrations/${aws_apigatewayv2_integration.api.id}"
+}

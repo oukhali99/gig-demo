@@ -49,7 +49,7 @@ flowchart LR
 | Identity | `identity/` | `http.ts`, `cognito.ts` | — (Cognito API) |
 | Jobs | `jobs/` | `http.ts`, `repository.ts`, `events.ts`, `types.ts` | `JOBS_TABLE_NAME` |
 | Bookings | `bookings/` | `http.ts`, `repository.ts`, `events.ts`, `types.ts`; calls `payments/booking-hooks.ts` | `BOOKINGS_TABLE_NAME` |
-| Payments | `payments/` | `http.ts`, `repository.ts`, `events.ts`, `booking-hooks.ts`, `types.ts` | `PAYMENTS_TABLE_NAME` |
+| Payments | `payments/` | `http.ts`, `repository.ts`, `events.ts`, `booking-hooks.ts`, `stripe-client.ts`, `types.ts` | `PAYMENTS_TABLE_NAME` |
 | Notifications | `notifications/` | `http.ts` (list); rows written via `broadcast.ts` | `NOTIFICATIONS_TABLE_NAME` |
 | Reviews | `reviews/` | `http.ts`, `repository.ts`, `types.ts` | `REVIEWS_TABLE_NAME` |
 | Shared images | `shared/` | `images.ts` (S3 + Rekognition) | `BUCKET_NAME` |

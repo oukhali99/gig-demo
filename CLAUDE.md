@@ -8,7 +8,7 @@ Serverless gig marketplace (Gigboard) — clients post small jobs, workers disco
 - Node.js 20 + TypeScript, deployed as AWS Lambda (HTTP API)
 - AWS SDK v3: DynamoDB, S3, Cognito, Comprehend, Rekognition, Bedrock, SSM
 - Second Lambda for image moderation (S3-event-triggered)
-- No test framework yet — `npm test` is a placeholder
+- No test framework yet — `yarn test` is a placeholder
 
 **Frontend** (`app/frontend/`)
 - React 18 + TypeScript + Vite SPA
@@ -22,18 +22,17 @@ Serverless gig marketplace (Gigboard) — clients post small jobs, workers disco
 ## Build & Run
 
 ```bash
+# Install all workspaces from repo root (always use yarn, never npm)
+yarn install
+
 # API
-cd app/api
-npm install
-npm run build               # tsc compile
-npm run build:lambda        # bundle for Lambda deployment
-npm run seed:dummy          # seed DynamoDB with test data
+yarn workspace gig-api build               # tsc compile
+yarn workspace gig-api build:lambda        # bundle for Lambda deployment
+yarn workspace gig-api seed:dummy          # seed DynamoDB with test data
 
 # Frontend
-cd app/frontend
-npm install
-npm run dev                 # Vite dev server
-npm run build               # Production build
+yarn workspace frontend dev                # Vite dev server
+yarn workspace frontend build              # Production build
 
 # Infrastructure
 cd infra
@@ -65,11 +64,19 @@ terraform apply             # REQUIRES human approval
 
 ## Conventions
 
+- **Package manager: Yarn only** — never use `npm install` or `npm ci`. Use `yarn` / `yarn workspace <name> <script>` from the repo root. Do not create `package-lock.json`.
 - TypeScript throughout — no `any`
 - AWS SDK v3 (modular imports, not v2)
 - ESM (`"type": "module"`) in both packages
 - Conventional commits
 - Branch strategy: `main` (prod), `development` (default working branch), feature branches off `development`
+- **Env var checklist** — when adding any new environment variable, update ALL of the following that apply:
+  - `app/frontend/.env.example` — for new `VITE_*` vars
+  - `infra/terraform.dev.tfvars.example` and `infra/terraform.prod.tfvars.example` — for new Terraform input variables
+  - `infra/variables.tf` — declare the variable
+  - `infra/outputs.tf` — expose as output if the frontend or a script needs to read it
+  - `scripts/update-frontend-env.sh` — if the var must be written to `app/frontend/.env` at deploy time
+  - `infra/pipeline.tf` — add a `TF_VAR_*` CodeBuild environment variable so CI can pass it to `terraform apply`
 
 ## Workflow
 
@@ -87,15 +94,11 @@ Run only the command(s) relevant to what was changed. Fix any errors before fini
 
 - **NEVER `terraform apply`** without explicit human approval — infrastructure changes affect live AWS resources
 - **NEVER `terraform plan`** against prod without confirming the environment first (`-var-file=prod.tfvars`)
-- The CodeBuild IAM role has `AdministratorAccess` — treat CI credentials as high-privilege
-- Payment system tracks state in DynamoDB only — **no real money movement** (no Stripe/payment processor integrated)
+- The CodeBuild IAM role has a scoped IAM policy — treat CI credentials as high-privilege
+- **Stripe is integrated** — `POST /bookings/{id}/confirm` now requires a `paymentMethodId` in production and creates a real Stripe PaymentIntent hold; completion captures it
 
 ## Known Issues (see `docs/audit-report.md`)
 
-- `canAccessPayment` fallback allows access when `clientId`/`workerId` are missing — should be `return false`
-- Draft jobs and bookings have no authorization check on `GET /{resource}/{id}`
-- SSM loaded with `WithDecryption: false` — will silently receive ciphertext for `SecureString` params
-- All users are auto-confirmed on registration (email verification bypassed)
 - Refresh token not persisted to `localStorage` after silent refresh — users silently log out
 - No tests
 
@@ -103,6 +106,6 @@ Run only the command(s) relevant to what was changed. Fix any errors before fini
 
 - The `routeMap` in domain HTTP handlers documents routes but does **not** perform routing — real routing is the `if/else` fallthrough below it
 - `clientId` parsed from request body in job creation is silently discarded — JWT `sub` is always used
-- `budget` and `amount` fields are free-form strings — no numeric validation or normalization
+- `budget` (jobs) and `amount` (payments) are **integer cents** (e.g. 5000 = $50.00) — frontend converts dollars to cents on input
 - `listJobs` filters category/location **client-side** after DynamoDB returns a page — returned page may be smaller than requested limit
 - Category/location post-filtering means `nextCursor` can be present even when no more matching items exist

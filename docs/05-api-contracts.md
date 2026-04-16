@@ -7,7 +7,7 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 ## Authentication
 
 - **Protected routes**: `Authorization: Bearer <token>` (Cognito **access** or **ID** token per API Gateway JWT authorizer configuration).
-- **Public routes** (no JWT on API Gateway): `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`.
+- **Public routes** (no JWT on API Gateway): `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/confirm`, `POST /auth/resend-confirmation`, `POST /payments/webhook`.
 - **Platform admin**: Cognito custom attribute **`custom:role`** (string). When trimmed it equals **`admin`**, the user may call **image moderation** routes under `/admin/moderation/*` (JWT required). The user pool app client must include `custom:role` in **read attributes** so the claim appears on the **ID token** (required for the JWT authorizer and `GET /auth/me`). Admins are created like any other user; set `custom:role` to `admin` in the Cognito console or via `AdminUpdateUserAttributes`. There is no self-signup path to admin. After changing attributes or client settings, users need a **new sign-in** (or token refresh that reissues the ID token) for the claim to appear.
 
 ---
@@ -46,7 +46,7 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 | POST | `/bookings` | Create booking. Body: `jobId`. **Header `Idempotency-Key` required.** |
 | GET | `/bookings/{id}` | Get booking. |
 | GET | `/bookings` | List. Query: one of `jobId`, `workerId`, or `status` required; `limit`, `cursor`. Filtered to parties. |
-| POST | `/bookings/{id}/confirm` | Owner confirms → payment auto-hold hook. |
+| POST | `/bookings/{id}/confirm` | Owner confirms. Body optional: `paymentMethodId` (Stripe PaymentMethod id). If provided and Stripe is configured, creates a `capture_method: manual` PaymentIntent as a hold on the client's card before confirming. Returns `402 PAYMENT_REQUIRES_ACTION` if the card requires 3D Secure. |
 | POST | `/bookings/{id}/start` | Worker: confirmed → in progress. |
 | POST | `/bookings/{id}/complete` | Client or worker completes → payment release hook. |
 | POST | `/bookings/{id}/cancel` | Client or worker cancels. Body optional `reason` → payment refund hook. |
@@ -68,13 +68,16 @@ Rekognition label confidence bands (0–100) are configurable via Terraform / SS
 
 ### Payments
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| POST | `/payments/hold` | Body: `bookingId`, `amount`, optional `currency`. **Header `Idempotency-Key` required.** Caller must be booking party. |
-| GET | `/payments` | List payments for the current user (as client or worker). Query: optional `limit` (default 50, max 100). Response `{ items: Payment[] }` sorted by `createdAt` descending. |
-| GET | `/payments/{id}` | Get payment (party only). |
-| POST | `/payments/{id}/release` | Client releases hold. |
-| POST | `/payments/{id}/refund` | Refund from `hold_created` or `released`. Body optional `reason`. |
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| POST | `/payments/webhook` | None (Stripe-signed) | Stripe webhook receiver. Validates `Stripe-Signature` against `STRIPE_WEBHOOK_SECRET`. Handles `payment_intent.canceled`. Returns `{ received: true }`. |
+| POST | `/payments/hold` | JWT | Body: `bookingId`, `amount` **(integer cents)**, optional `currency`, optional `paymentMethodId`. **Header `Idempotency-Key` required.** Caller must be a booking party. If `paymentMethodId` is provided and Stripe is configured, creates a Stripe PaymentIntent with `capture_method: manual`. |
+| GET | `/payments` | JWT | List payments for the current user (as client or worker). Query: optional `limit` (default 50, max 100). Response `{ items: Payment[] }` sorted by `createdAt` descending. |
+| GET | `/payments/{id}` | JWT | Get payment (party only). |
+| POST | `/payments/{id}/release` | JWT | Client captures the Stripe PaymentIntent hold (if present) and marks payment `released`. |
+| POST | `/payments/{id}/refund` | JWT | Issues a Stripe refund (if PaymentIntent is attached) and marks payment `refunded`. Body optional `reason`. |
+
+**Payment amounts**: `budget` on jobs and `amount` on payments are **integer cents** (e.g. `5000` = $50.00).
 
 ### Notifications
 
@@ -110,6 +113,7 @@ Same key returns the same stored resource when applicable (bookings by GSI on id
 - **Forbidden**: `403` with `{ "code": "FORBIDDEN", "message": "..." }`.
 - **Unauthorized**: `401` with `{ "code": "UNAUTHORIZED", "message": "..." }`.
 - **Conflict**: `409` with `{ "code": "CONFLICT", "message": "..." }`.
+- **Payment required**: `402` with `{ "code": "PAYMENT_REQUIRES_ACTION" | "PAYMENT_FAILED", "message": "..." }` — card requires 3D Secure or was declined.
 - **Moderation**: `400` with `{ "code": "MODERATION_REJECTED", "message": "..." }`.
 - **Server error**: `500` with `{ "code": "INTERNAL_ERROR", "message": "..." }`.
 

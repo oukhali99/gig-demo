@@ -45,7 +45,7 @@ export default function JobList() {
                 {job.title}
               </Link>
               <p className="job-card-meta">
-                {job.location} · ${job.budget} · {job.scheduledAt.slice(0, 10)}
+                {job.location} · ${(job.budget / 100).toFixed(2)} · {job.scheduledAt.slice(0, 10)}
               </p>
               <p className="job-card-byline">
                 Posted by <Link to={`/users/${job.clientId}`}>{users[job.clientId]?.name ?? users[job.clientId]?.email ?? job.clientId}</Link>
