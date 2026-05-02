@@ -28,7 +28,7 @@ No shared database across “logical” services: **one table per domain**, all 
 | Entity | Primary key | GSIs (names in Terraform) |
 |--------|-------------|----------------------------|
 | Job | `jobId` | `status-createdAt-index`, `clientId-createdAt-index` |
-| Booking | `bookingId` | `jobId-createdAt-index`, `workerId-createdAt-index`, `status-createdAt-index`, `idempotencyKey-index` |
+| Booking | `bookingId` | `jobId-createdAt-index`, `workerId-createdAt-index`, `clientId-createdAt-index`, `status-createdAt-index`, `idempotencyKey-index` |
 | Payment | `paymentId` | `bookingId-createdAt-index`, `idempotencyKey-index` |
 | Notification | `userId` + `eventId` | — (query by partition `userId`) |
 | Review | `bookingId` + `reviewerId` | `revieweeId-createdAt-index` |

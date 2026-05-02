@@ -56,11 +56,11 @@ terraform apply             # REQUIRES human approval
 
 | Table | Primary Key | Notable GSIs |
 |---|---|---|
-| jobs | `id` | `clientId-index`, `status-index` |
-| bookings | `id` | `jobId-index`, `workerId-index` |
-| payments | `id` | `bookingId-index` |
-| notifications | `id` | `userId-index` |
-| reviews | `id` | `jobId-index`, `revieweeId-index` |
+| jobs | `jobId` | `status-createdAt-index`, `clientId-createdAt-index` |
+| bookings | `bookingId` | `jobId-createdAt-index`, `workerId-createdAt-index`, `clientId-createdAt-index`, `status-createdAt-index`, `idempotencyKey-index` |
+| payments | `paymentId` | `bookingId-createdAt-index`, `clientId-createdAt-index`, `workerId-createdAt-index`, `idempotencyKey-index` |
+| notifications | `userId` + `eventId` | — (query by partition `userId`) |
+| reviews | `bookingId` + `reviewerId` | `revieweeId-createdAt-index` |
 
 ## Conventions
 
@@ -79,6 +79,16 @@ terraform apply             # REQUIRES human approval
   - `infra/pipeline.tf` — add a `TF_VAR_*` CodeBuild environment variable so CI can pass it to `terraform apply`
   - **SecureString SSM parameters** — if the new var is a `SecureString`, also add its full ARN to the `kms:EncryptionContext:PARAMETER_ARN` list in the `api_lambda_ssm` policy in `infra/iam.tf`. Without this the Lambda cannot decrypt it and it will silently be absent from `process.env`.
 - **SSM config** — always call `ensureLambdaConfigFromSsm()` at the top of every Lambda handler entry point before reading `process.env`. It loads all SSM params into `process.env` once per container lifetime. Forgetting this means env vars are undefined on cold starts.
+- **Docs checklist** — when behavior, schema, or contract changes, update the matching doc in the same change:
+  - HTTP route added/removed or query/body shape changed → `docs/05-api-contracts.md`
+  - DynamoDB attribute, GSI, or primary key changed → `docs/07-data-and-persistence.md` AND the `## DynamoDB Tables` table in this file
+  - New domain event or notification type → `docs/06-domain-events-and-notifications.md`
+  - Booking lifecycle, role permissions, or payment flow changed → `docs/flow-booking-lifecycle.md` and `docs/sequence-booking-payment.md`
+  - AWS service swap, runtime bump, or new component → `docs/03-architecture-overview.md`, the architecture mention in this file, and `README.md` if user-facing
+  - Bounded-context boundaries or module map changed → `docs/04-bounded-contexts-and-code-map.md`
+  - Security/auth model changed → `docs/08-security-and-compliance.md`
+  - Operational runbook (logs, alarms, SSM params) changed → `docs/09-operations-and-observability.md`
+  - Terraform environment, CI pipeline, or backend config changed → `docs/10-terraform-environments-and-ci.md`
 - **Logging** — never use `console.log`, `console.error`, or `console.warn` directly. Always use `logger` from `app/api/src/lib/logger.ts`:
   - `logger.debug(msg, data?)` — verbose, dev only (filtered out in prod by default)
   - `logger.info(msg, data?)` — notable events (Stripe webhook received, image moderation decision)

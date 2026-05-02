@@ -47,7 +47,7 @@ HTTP API is exposed via **API Gateway** (HTTP API v2). This document matches the
 |--------|------|---------|
 | POST | `/bookings` | Create booking. Body: `jobId`. **Header `Idempotency-Key` required.** Returns `403 STRIPE_NOT_ONBOARDED` if Stripe is configured and the worker has not completed payout onboarding. |
 | GET | `/bookings/{id}` | Get booking. |
-| GET | `/bookings` | List. Query: one of `jobId`, `workerId`, or `status` required; `limit`, `cursor`. Filtered to parties. |
+| GET | `/bookings` | List. Query: one of `jobId`, `workerId`, `clientId`, or `status` required; `workerId=me` and `clientId=me` resolve to the caller. `limit`, `cursor`. Filtered to parties. |
 | POST | `/bookings/{id}/confirm` | Owner confirms. Body optional: `paymentMethodId` (Stripe PaymentMethod id). If provided and Stripe is configured, creates a `capture_method: manual` PaymentIntent as a hold on the client's card before confirming. Returns `402 PAYMENT_REQUIRES_ACTION` if the card requires 3D Secure. |
 | POST | `/bookings/{id}/start` | Worker: confirmed → in progress. |
 | POST | `/bookings/{id}/complete` | Client or worker completes → payment release hook. |
