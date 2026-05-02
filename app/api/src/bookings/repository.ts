@@ -8,7 +8,6 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import type { Booking, BookingStatus, ListBookingsQuery, ListBookingsResult } from './types.js';
-export type { EnrichedBooking } from './types.js';
 
 const client = new DynamoDBClient({});
 

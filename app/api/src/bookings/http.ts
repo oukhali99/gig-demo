@@ -140,33 +140,7 @@ async function handleListBookings(event: APIGatewayProxyEventV2): Promise<APIGat
   });
 
   const allowed = result.items.filter((b) => b.clientId === sub || b.workerId === sub);
-
-  // Enrich with job titles and user display names server-side so the frontend
-  // needs only this one call to render the full list.
-  const jobIds = [...new Set(allowed.map((b) => b.jobId))];
-  const userIds = [...new Set(allowed.flatMap((b) => [b.clientId, b.workerId]))];
-
-  const [jobMap, users] = await Promise.all([
-    jobsRepo.getJobsByIds(jobIds),
-    Promise.all(
-      userIds.map((id) =>
-        cognitoModule.getUserBySub(id)
-          .then((u) => [id, u?.name ?? u?.email ?? id] as const)
-          .catch(() => [id, id] as const)
-      )
-    ),
-  ]);
-
-  const userMap = new Map(users);
-  const enriched = allowed.map((b) => ({
-    ...b,
-    jobTitle: jobMap.get(b.jobId)?.title,
-    jobBudget: jobMap.get(b.jobId)?.budget,
-    clientName: userMap.get(b.clientId),
-    workerName: userMap.get(b.workerId),
-  }));
-
-  return json(200, { items: enriched, nextCursor: result.nextCursor });
+  return json(200, { items: allowed, nextCursor: result.nextCursor });
 }
 
 async function handleConfirm(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {

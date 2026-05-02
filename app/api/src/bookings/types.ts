@@ -30,12 +30,6 @@ export interface ListBookingsQuery {
   cursor?: string;
 }
 
-export interface EnrichedBooking extends Booking {
-  jobTitle?: string;
-  clientName?: string;
-  workerName?: string;
-}
-
 export interface ListBookingsResult {
   items: Booking[];
   nextCursor?: string;

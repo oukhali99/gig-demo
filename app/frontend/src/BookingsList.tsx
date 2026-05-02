@@ -8,7 +8,10 @@ import {
   confirmBooking,
   completeBooking,
   cancelBooking,
+  getJob,
+  getUser,
   type Booking,
+  type Job,
 } from './api';
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
@@ -78,6 +81,8 @@ function ConfirmCardForm({ booking, budget, onSuccess, onCancel }: ConfirmCardFo
 export default function BookingsList() {
   const { auth, loading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [jobs, setJobs] = useState<Record<string, Job>>({});
+  const [users, setUsers] = useState<Record<string, { name?: string; email?: string }>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
@@ -96,6 +101,23 @@ export default function BookingsList() {
         clientRes.items.filter((b) => b.clientId === sub).forEach((b) => byId.set(b.bookingId, b));
         const list = Array.from(byId.values()).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
         setBookings(list);
+
+        const jobIds = Array.from(new Set(list.map((b) => b.jobId)));
+        const userIds = Array.from(new Set(list.flatMap((b) => [b.clientId, b.workerId])));
+        return Promise.all([
+          Promise.all(jobIds.map((id) => getJob(id).then((j) => [id, j] as const).catch(() => null))),
+          Promise.all(userIds.map((id) => getUser(id).then((u) => [id, { name: u.name ?? undefined, email: u.email ?? undefined }] as const).catch(() => [id, { email: id }] as const))),
+        ]);
+      })
+      .then((extras) => {
+        if (!extras) return;
+        const [jobList, userList] = extras;
+        const jobMap: Record<string, Job> = {};
+        jobList.forEach((entry) => { if (entry) jobMap[entry[0]] = entry[1]; });
+        setJobs(jobMap);
+        const userMap: Record<string, { name?: string; email?: string }> = {};
+        userList.forEach(([id, user]) => { userMap[id] = user; });
+        setUsers(userMap);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -137,7 +159,9 @@ export default function BookingsList() {
       ) : (
         <ul className="booking-list">
           {bookings.map((b) => {
-            const enriched = b as Booking & { jobTitle?: string; jobBudget?: number; clientName?: string; workerName?: string };
+            const job = jobs[b.jobId];
+            const clientUser = users[b.clientId];
+            const workerUser = users[b.workerId];
             const isClient = auth.user?.sub === b.clientId;
             const isConfirming = confirmingBookingId === b.bookingId;
             return (
@@ -146,17 +170,17 @@ export default function BookingsList() {
                   <div>
                     <span className={`badge ${b.status}`}>{b.status}</span>
                     <Link to={`/jobs/${b.jobId}`} className="booking-job-link">
-                      {enriched.jobTitle ?? `Job ${b.jobId.slice(0, 8)}…`}
+                      {job?.title ?? `Job ${b.jobId.slice(0, 8)}…`}
                     </Link>
                     <p className="job-card-meta">Updated {new Date(b.updatedAt).toLocaleString()}</p>
                     <p className="booking-persons">
                       Client:{' '}
                       <Link to={`/users/${b.clientId}`}>
-                        {enriched.clientName ?? b.clientId}
+                        {clientUser?.name ?? clientUser?.email ?? b.clientId}
                       </Link>
                       {' '}• Worker:{' '}
                       <Link to={`/users/${b.workerId}`}>
-                        {enriched.workerName ?? b.workerId}
+                        {workerUser?.name ?? workerUser?.email ?? b.workerId}
                       </Link>
                     </p>
                   </div>
@@ -191,7 +215,7 @@ export default function BookingsList() {
                     <Elements stripe={stripePromise}>
                       <ConfirmCardForm
                         booking={b}
-                        budget={enriched.jobBudget}
+                        budget={job?.budget}
                         onSuccess={(updated) => {
                           refetchBooking(b.bookingId, updated);
                           setConfirmingBookingId(null);
@@ -202,7 +226,7 @@ export default function BookingsList() {
                   ) : (
                     <ConfirmCardForm
                       booking={b}
-                      budget={enriched.jobBudget}
+                      budget={job?.budget}
                       onSuccess={(updated) => {
                         refetchBooking(b.bookingId, updated);
                         setConfirmingBookingId(null);

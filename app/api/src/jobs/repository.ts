@@ -2,7 +2,6 @@ import {
   DynamoDBClient,
   PutItemCommand,
   GetItemCommand,
-  BatchGetItemCommand,
   UpdateItemCommand,
   DeleteItemCommand,
   QueryCommand,
@@ -18,32 +17,6 @@ function jobsTableName(): string {
   const name = process.env.JOBS_TABLE_NAME;
   if (!name) throw new Error('JOBS_TABLE_NAME is not set');
   return name;
-}
-
-export async function getJobsByIds(jobIds: string[]): Promise<Map<string, Job>> {
-  const unique = [...new Set(jobIds)].filter(Boolean);
-  if (unique.length === 0) return new Map();
-  const table = jobsTableName();
-  // BatchGetItem supports up to 100 keys per call
-  const chunks: string[][] = [];
-  for (let i = 0; i < unique.length; i += 100) chunks.push(unique.slice(i, i + 100));
-  const results = await Promise.all(
-    chunks.map((chunk) =>
-      client.send(
-        new BatchGetItemCommand({
-          RequestItems: { [table]: { Keys: chunk.map((id) => marshall({ jobId: id })) } },
-        })
-      )
-    )
-  );
-  const map = new Map<string, Job>();
-  for (const res of results) {
-    for (const item of res.Responses?.[table] ?? []) {
-      const job = unmarshall(item) as Job;
-      map.set(job.jobId, job);
-    }
-  }
-  return map;
 }
 
 export async function createJob(job: Job): Promise<void> {

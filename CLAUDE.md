@@ -94,7 +94,7 @@ After **every** code or infrastructure change, verify it compiles/validates befo
 | Changed area | Verification command |
 |---|---|
 | `app/api/` | `yarn workspace gig-api build` |
-| `app/frontend/` | `cd app/frontend && npm run build` |
+| `app/frontend/` | `yarn workspace frontend build` |
 | `infra/` | `cd infra && terraform fmt -check && terraform validate` |
 
 Run only the command(s) relevant to what was changed. Fix any errors before finishing.

@@ -54,6 +54,10 @@ resource "aws_dynamodb_table" "bookings" {
     type = "S"
   }
   attribute {
+    name = "clientId"
+    type = "S"
+  }
+  attribute {
     name = "status"
     type = "S"
   }
@@ -75,6 +79,12 @@ resource "aws_dynamodb_table" "bookings" {
   global_secondary_index {
     name            = "workerId-createdAt-index"
     hash_key        = "workerId"
+    range_key       = "createdAt"
+    projection_type = "ALL"
+  }
+  global_secondary_index {
+    name            = "clientId-createdAt-index"
+    hash_key        = "clientId"
     range_key       = "createdAt"
     projection_type = "ALL"
   }
