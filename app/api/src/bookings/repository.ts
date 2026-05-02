@@ -8,6 +8,7 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import type { Booking, BookingStatus, ListBookingsQuery, ListBookingsResult } from './types.js';
+export type { EnrichedBooking } from './types.js';
 
 const client = new DynamoDBClient({});
 
@@ -144,6 +145,14 @@ function buildListQuery(query: ListBookingsQuery): { indexName: string; keyCondi
       keyCondition: 'workerId = :workerId',
       exprNames: {},
       exprValues: { ':workerId': query.workerId },
+    };
+  }
+  if (query.clientId) {
+    return {
+      indexName: 'clientId-createdAt-index',
+      keyCondition: 'clientId = :clientId',
+      exprNames: {},
+      exprValues: { ':clientId': query.clientId },
     };
   }
   return {

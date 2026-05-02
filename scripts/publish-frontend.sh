@@ -4,9 +4,9 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT/infra"
-VITE_API_URL="$(terraform output -raw vite_api_url)"
-BUCKET="$(terraform output -raw frontend_bucket_name)"
-DIST_ID="$(terraform output -raw frontend_cloudfront_distribution_id)"
+VITE_API_URL="$(terraform output -no-color -raw vite_api_url | head -n 1)"
+BUCKET="$(terraform output -no-color -raw frontend_bucket_name | head -n 1)"
+DIST_ID="$(terraform output -no-color -raw frontend_cloudfront_distribution_id | head -n 1)"
 cd "$ROOT"
 export VITE_API_URL
 yarn workspace frontend build

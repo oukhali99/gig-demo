@@ -4,15 +4,11 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useAuth } from './AuthContext';
 import {
-  getUser,
   listBookings,
-  listJobs,
   confirmBooking,
   completeBooking,
   cancelBooking,
-  getJob,
   type Booking,
-  type Job,
 } from './api';
 
 const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined;
@@ -20,12 +16,12 @@ const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY
 
 interface ConfirmCardFormProps {
   booking: Booking;
-  job: Job | undefined;
+  budget: number | undefined;
   onSuccess: (updated: Booking) => void;
   onCancel: () => void;
 }
 
-function ConfirmCardForm({ booking, job, onSuccess, onCancel }: ConfirmCardFormProps) {
+function ConfirmCardForm({ booking, budget, onSuccess, onCancel }: ConfirmCardFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -54,7 +50,7 @@ function ConfirmCardForm({ booking, job, onSuccess, onCancel }: ConfirmCardFormP
       .finally(() => setSubmitting(false));
   };
 
-  const budgetDisplay = job?.budget ? `$${(job.budget / 100).toFixed(2)}` : null;
+  const budgetDisplay = budget ? `$${(budget / 100).toFixed(2)}` : null;
 
   return (
     <form onSubmit={handleSubmit} className="card" style={{ marginTop: '0.5rem' }}>
@@ -82,8 +78,6 @@ function ConfirmCardForm({ booking, job, onSuccess, onCancel }: ConfirmCardFormP
 export default function BookingsList() {
   const { auth, loading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [jobs, setJobs] = useState<Record<string, Job>>({});
-  const [users, setUsers] = useState<Record<string, { name?: string; email?: string }>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
@@ -93,33 +87,15 @@ export default function BookingsList() {
     if (!auth?.user?.sub) return;
     const sub = auth.user.sub;
     Promise.all([
-      listBookings({ workerId: sub, limit: 50 }),
-      listJobs({ clientId: 'me', status: 'published', limit: 50 }).then((r) =>
-        Promise.all(r.items.map((job) => listBookings({ jobId: job.jobId, limit: 20 }).then((br) => br.items).catch(() => [] as Booking[])))
-      ).then((arrays) => arrays.flat()),
+      listBookings({ workerId: 'me', limit: 50 }),
+      listBookings({ clientId: 'me', limit: 50 }),
     ])
-      .then(([workerRes, clientBookings]) => {
+      .then(([workerRes, clientRes]) => {
         const byId = new Map<string, Booking>();
         workerRes.items.forEach((b) => byId.set(b.bookingId, b));
-        clientBookings.forEach((b) => {
-          if (b.clientId === sub) byId.set(b.bookingId, b);
-        });
+        clientRes.items.filter((b) => b.clientId === sub).forEach((b) => byId.set(b.bookingId, b));
         const list = Array.from(byId.values()).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
         setBookings(list);
-        const jobIds = [...new Set(list.map((b) => b.jobId))];
-        const userIds = [...new Set(list.flatMap((b) => [b.clientId, b.workerId]))];
-        Promise.all(userIds.map((id) => getUser(id).then((u) => [id, { name: u.name ?? undefined, email: u.email ?? undefined }] as const).catch(() => [id, { email: id }] as const)))
-          .then((list) => {
-            const usersMap: Record<string, { name?: string; email?: string }> = {};
-            list.forEach(([id, user]) => { usersMap[id] = user; });
-            setUsers(usersMap);
-          });
-        return Promise.all(jobIds.map((id: string) => getJob(id).then((job: Job) => [id, job] as const).catch(() => null)));
-      })
-      .then((jobPairs) => {
-        const jobMap: Record<string, Job> = {};
-        (jobPairs as ([string, Job] | null)[]).forEach((pair) => { if (pair) jobMap[pair[0]] = pair[1]; });
-        setJobs(jobMap);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -161,7 +137,7 @@ export default function BookingsList() {
       ) : (
         <ul className="booking-list">
           {bookings.map((b) => {
-            const job = jobs[b.jobId];
+            const enriched = b as Booking & { jobTitle?: string; jobBudget?: number; clientName?: string; workerName?: string };
             const isClient = auth.user?.sub === b.clientId;
             const isConfirming = confirmingBookingId === b.bookingId;
             return (
@@ -169,22 +145,18 @@ export default function BookingsList() {
                 <div className="booking-card-row">
                   <div>
                     <span className={`badge ${b.status}`}>{b.status}</span>
-                    {job ? (
-                      <Link to={`/jobs/${b.jobId}`} className="booking-job-link">
-                        {job.title}
-                      </Link>
-                    ) : (
-                      <span className="booking-job-fallback">Job {b.jobId.slice(0, 8)}…</span>
-                    )}
+                    <Link to={`/jobs/${b.jobId}`} className="booking-job-link">
+                      {enriched.jobTitle ?? `Job ${b.jobId.slice(0, 8)}…`}
+                    </Link>
                     <p className="job-card-meta">Updated {new Date(b.updatedAt).toLocaleString()}</p>
                     <p className="booking-persons">
                       Client:{' '}
                       <Link to={`/users/${b.clientId}`}>
-                        {users[b.clientId]?.name ?? users[b.clientId]?.email ?? b.clientId}
+                        {enriched.clientName ?? b.clientId}
                       </Link>
                       {' '}• Worker:{' '}
                       <Link to={`/users/${b.workerId}`}>
-                        {users[b.workerId]?.name ?? users[b.workerId]?.email ?? b.workerId}
+                        {enriched.workerName ?? b.workerId}
                       </Link>
                     </p>
                   </div>
@@ -219,7 +191,7 @@ export default function BookingsList() {
                     <Elements stripe={stripePromise}>
                       <ConfirmCardForm
                         booking={b}
-                        job={job}
+                        budget={enriched.jobBudget}
                         onSuccess={(updated) => {
                           refetchBooking(b.bookingId, updated);
                           setConfirmingBookingId(null);
@@ -230,7 +202,7 @@ export default function BookingsList() {
                   ) : (
                     <ConfirmCardForm
                       booking={b}
-                      job={job}
+                      budget={enriched.jobBudget}
                       onSuccess={(updated) => {
                         refetchBooking(b.bookingId, updated);
                         setConfirmingBookingId(null);

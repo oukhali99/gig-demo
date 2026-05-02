@@ -39,7 +39,7 @@ These AI tools assist development and runtime moderation, but human review remai
 
 ## Prerequisites
 
-Node.js 20+, Yarn, Terraform 1.0+, AWS CLI configured.
+Node.js 22+, Yarn, Terraform 1.0+, AWS CLI configured.
 
 ## Terraform state backend (first time)
 

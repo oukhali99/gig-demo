@@ -310,6 +310,7 @@ export async function createBooking(jobId: string, idempotencyKey: string): Prom
 export async function listBookings(params: {
   jobId?: string;
   workerId?: string;
+  clientId?: string;
   status?: BookingStatus;
   limit?: number;
   cursor?: string;
@@ -317,6 +318,7 @@ export async function listBookings(params: {
   const sp = new URLSearchParams();
   if (params.jobId) sp.set('jobId', params.jobId);
   if (params.workerId) sp.set('workerId', params.workerId);
+  if (params.clientId) sp.set('clientId', params.clientId);
   if (params.status) sp.set('status', params.status);
   if (params.limit) sp.set('limit', String(params.limit));
   if (params.cursor) sp.set('cursor', params.cursor);

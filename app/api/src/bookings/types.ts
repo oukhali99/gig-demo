@@ -24,9 +24,16 @@ export interface CreateBookingInput {
 export interface ListBookingsQuery {
   jobId?: string;
   workerId?: string;
+  clientId?: string;
   status?: BookingStatus;
   limit?: number;
   cursor?: string;
+}
+
+export interface EnrichedBooking extends Booking {
+  jobTitle?: string;
+  clientName?: string;
+  workerName?: string;
 }
 
 export interface ListBookingsResult {

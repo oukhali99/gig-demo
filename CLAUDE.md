@@ -5,7 +5,7 @@ Serverless gig marketplace (Gigboard) — clients post small jobs, workers disco
 ## Stack
 
 **Backend** (`app/api/`)
-- Node.js 20 + TypeScript, deployed as AWS Lambda (HTTP API)
+- Node.js 22 + TypeScript, deployed as AWS Lambda (HTTP API)
 - AWS SDK v3: DynamoDB, S3, Cognito, Comprehend, Rekognition, Bedrock, SSM
 - Second Lambda for image moderation (S3-event-triggered)
 - No test framework yet — `yarn test` is a placeholder

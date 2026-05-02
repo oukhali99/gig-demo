@@ -3,8 +3,8 @@
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-API_URL=$(cd infra && terraform output -raw vite_api_url)
-STRIPE_PK=$(cd infra && terraform output -raw vite_stripe_publishable_key)
+API_URL=$(cd infra && terraform output -no-color -raw vite_api_url | head -n 1)
+STRIPE_PK=$(cd infra && terraform output -no-color -raw vite_stripe_publishable_key | head -n 1)
 ENV_FILE="$ROOT/app/frontend/.env"
 
 upsert_env_var() {

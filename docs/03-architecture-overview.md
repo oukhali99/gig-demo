@@ -96,7 +96,7 @@ Future splits (e.g. multiple Lambdas or services) can reintroduce a bus or direc
 
 | Area | Services |
 |------|----------|
-| **Compute** | Lambda (Node.js 20), one function for API + one for image moderation |
+| **Compute** | Lambda (Node.js 22), one function for API + one for image moderation |
 | **API** | API Gateway HTTP API v2 |
 | **Auth** | Cognito User Pool + app client; JWT authorizer on protected routes; email verification flow |
 | **Data** | DynamoDB (on-demand) per table: jobs, bookings, payments, notifications, reviews |
