@@ -51,36 +51,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    const refresh = localStorage.getItem(REFRESH_KEY);
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    api.setAuthToken(token);
-    api.authMe()
-      .then((user) => setAuth({ user, token }))
-      .catch(() => {
+    let cancelled = false;
+    const init = async () => {
+      const token = localStorage.getItem(TOKEN_KEY);
+      const refresh = localStorage.getItem(REFRESH_KEY);
+      if (!token) return;
+      api.setAuthToken(token);
+      try {
+        const user = await api.authMe();
+        if (!cancelled) setAuth({ user, token });
+      } catch {
         if (refresh) {
-          api.authRefresh(refresh)
-            .then((tokens) => {
-              api.setAuthToken(tokens.idToken);
-              localStorage.setItem(TOKEN_KEY, tokens.idToken);
-              return api.authMe();
-            })
-            .then((user) => setAuth({ user, token: localStorage.getItem(TOKEN_KEY)! }))
-            .catch(() => {
-              api.setAuthToken(null);
-              localStorage.removeItem(TOKEN_KEY);
-              localStorage.removeItem(REFRESH_KEY);
-            });
+          try {
+            const tokens = await api.authRefresh(refresh);
+            api.setAuthToken(tokens.idToken);
+            localStorage.setItem(TOKEN_KEY, tokens.idToken);
+            const user = await api.authMe();
+            if (!cancelled) setAuth({ user, token: tokens.idToken });
+          } catch {
+            api.setAuthToken(null);
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(REFRESH_KEY);
+            if (!cancelled) setAuth(null);
+          }
         } else {
           api.setAuthToken(null);
           localStorage.removeItem(TOKEN_KEY);
+          if (!cancelled) setAuth(null);
         }
-      })
-      .finally(() => setLoading(false));
+      }
+    };
+    init().finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
   }, []);
+
+  // Wire a global 401 handler — when an authenticated request gets a 401
+  // (typically because the ID token aged out mid-session), wipe local state
+  // so the header and gated routes update immediately.
+  useEffect(() => {
+    if (!auth) {
+      api.setUnauthorizedHandler(null);
+      return;
+    }
+    api.setUnauthorizedHandler(() => {
+      api.setAuthToken(null);
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+      setAuth(null);
+    });
+    return () => api.setUnauthorizedHandler(null);
+  }, [auth]);
 
   return (
     <AuthContext.Provider value={{ auth, loading, login, register, logout, refreshSession }}>

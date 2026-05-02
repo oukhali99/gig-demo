@@ -11,6 +11,7 @@ export class ApiError extends Error {
 }
 
 let authToken: string | null = null;
+let onUnauthorized: (() => void) | null = null;
 
 export function setAuthToken(token: string | null) {
   authToken = token;
@@ -20,12 +21,22 @@ export function getAuthToken(): string | null {
   return authToken;
 }
 
+/**
+ * Register a callback invoked when an authenticated request returns 401.
+ * Wired by AuthProvider only while `auth` is non-null, so login/refresh/boot
+ * 401s do not trigger an unintended logout.
+ */
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorized = handler;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = BASE ? `${BASE}${path}` : path;
   const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(options?.headers as Record<string, string>) };
   if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
   const res = await fetch(url, { ...options, headers });
   if (!res.ok) {
+    if (res.status === 401 && authToken && onUnauthorized) onUnauthorized();
     const err = await res.json().catch(() => ({})) as { message?: string; code?: string };
     throw new ApiError(err.message ?? res.statusText, err.code ?? 'UNKNOWN', res.status);
   }
