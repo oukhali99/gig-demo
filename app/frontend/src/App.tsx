@@ -1,6 +1,7 @@
 import { Routes, Route, Link, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import JobList from './JobList';
+import LandingPage from './LandingPage';
 import JobDetail from './JobDetail';
 import CreateJob from './CreateJob';
 import DraftList from './DraftList';
@@ -85,6 +86,14 @@ function Nav() {
   );
 }
 
+// The board's front door: members land on the live job board, everyone else
+// gets the landing page that explains Gigboard and points them at a next step.
+function Home() {
+  const { auth, loading } = useAuth();
+  if (loading) return <p className="state-loading">Loading…</p>;
+  return auth ? <JobList /> : <LandingPage />;
+}
+
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { auth, loading } = useAuth();
   if (loading) return <p className="state-loading">Loading…</p>;
@@ -106,7 +115,7 @@ export default function App() {
       <Nav />
       <main className="container page-shell">
         <Routes>
-          <Route path="/" element={<JobList />} />
+          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/jobs/new" element={<RequireAuth><CreateJob /></RequireAuth>} />

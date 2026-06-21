@@ -1,27 +1,38 @@
 :root {
-  --color-ink: #1a1814;
-  --color-ink-muted: #5c534a;
-  --color-muted: #6b6258;
-  --color-paper: #f4f0e8;
-  --color-paper-bright: #faf7f2;
-  --color-surface: #fffefb;
+  /* "Dispatch board" — spruce board + putty paper + amber signal */
+  --color-ink: #14201d;
+  --color-ink-muted: #42514c;
+  --color-muted: #697470;
+  --color-paper: #e7e5da;
+  --color-paper-bright: #f2f0e8;
+  --color-surface: #fcfbf6;
   --color-surface-elevated: #ffffff;
-  --color-border: rgba(26, 24, 20, 0.1);
-  --color-border-strong: rgba(26, 24, 20, 0.16);
-  --color-accent: #c2562e;
-  --color-accent-hover: #a94825;
-  --color-nav: #3f3a36;
-  --color-link: #9e3d1f;
-  --color-ring: rgba(194, 86, 46, 0.45);
-  --color-backdrop: rgba(26, 24, 20, 0.48);
+  --color-border: rgba(20, 32, 29, 0.12);
+  --color-border-strong: rgba(20, 32, 29, 0.2);
+  /* Primary action = deep spruce (white text reads cleanly on it) */
+  --color-accent: #0f3d34;
+  --color-accent-hover: #0a2c26;
+  --color-nav: #0f3d34;
+  --color-link: #1c6a5a;
+  --color-ring: rgba(15, 61, 52, 0.38);
+  --color-backdrop: rgba(8, 40, 35, 0.55);
+  /* The board surfaces */
+  --color-board: #0e3b32;
+  --color-board-deep: #082823;
+  /* Signal = marigold amber. Always paired with ink text, never white. */
+  --signal: #efa72d;
+  --signal-deep: #d68f18;
+  --signal-soft: #f6e7c4;
+  --tag: #dbe6e0;
   --font-body: 'DM Sans', system-ui, sans-serif;
-  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --shadow-sm: 0 1px 2px rgba(26, 24, 20, 0.06);
-  --shadow-md: 0 4px 14px rgba(26, 24, 20, 0.08);
-  --shadow-lg: 0 12px 40px rgba(26, 24, 20, 0.12);
+  --font-display: 'Archivo', 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, 'Cascadia Code', monospace;
+  --radius-sm: 5px;
+  --radius-md: 9px;
+  --radius-lg: 13px;
+  --shadow-sm: 0 1px 2px rgba(20, 32, 29, 0.07);
+  --shadow-md: 0 5px 16px rgba(20, 32, 29, 0.1);
+  --shadow-lg: 0 14px 44px rgba(20, 32, 29, 0.16);
 }
 
 * {
@@ -35,6 +46,7 @@ body {
   background-color: var(--color-paper);
   line-height: 1.5;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 body::before {
@@ -44,8 +56,8 @@ body::before {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(ellipse 120% 80% at 100% 0%, rgba(194, 86, 46, 0.08), transparent 55%),
-    radial-gradient(ellipse 90% 70% at 0% 100%, rgba(99, 90, 82, 0.07), transparent 50%),
+    radial-gradient(ellipse 120% 80% at 100% 0%, rgba(239, 167, 45, 0.09), transparent 55%),
+    radial-gradient(ellipse 90% 70% at 0% 100%, rgba(15, 61, 52, 0.08), transparent 50%),
     url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
   opacity: 0.45;
   mix-blend-mode: multiply;
@@ -60,19 +72,49 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  font-weight: 600;
-  line-height: 1.2;
+  font-weight: 800;
+  line-height: 1.08;
   color: var(--color-ink);
   letter-spacing: -0.02em;
 }
 
 h1 {
-  font-size: 1.85rem;
+  font-size: 2rem;
   margin: 0 0 0.75rem;
 }
 
 h2 {
-  font-size: 1.35rem;
+  font-size: 1.4rem;
+}
+
+/* Mono eyebrow — the "stamped on a work order" label */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin: 0 0 0.4rem;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Shared header row: title block on the left, action on the right */
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.4rem;
+}
+
+.page-head h1 {
+  margin: 0;
 }
 
 a {
@@ -213,20 +255,20 @@ main.page-shell {
   align-items: center;
   justify-content: center;
   margin-top: 0;
-  padding: 0.35rem 0.7rem;
+  padding: 0.35rem 0.8rem;
   font-size: 0.82rem;
   border-radius: 999px;
   border: none;
-  background: var(--color-accent);
-  color: #fff !important;
-  font-weight: 600;
+  background: var(--signal);
+  color: var(--color-ink) !important;
+  font-weight: 700;
   text-decoration: none !important;
 }
 
 .app-nav a.btn-nav-cta:hover,
 .app-nav .btn-nav-cta:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-  color: #fff !important;
+  background: var(--signal-deep);
+  color: var(--color-ink) !important;
   text-decoration: none !important;
 }
 
@@ -690,11 +732,12 @@ button.secondary:hover:not(:disabled) {
   display: inline-block;
   padding: 0.2rem 0.5rem;
   border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  background: rgba(63, 58, 54, 0.08);
+  letter-spacing: 0.06em;
+  background: rgba(20, 32, 29, 0.08);
   color: var(--color-ink-muted);
 }
 
@@ -780,13 +823,13 @@ button.secondary:hover:not(:disabled) {
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(194, 86, 46, 0.4), var(--shadow-md);
+  box-shadow: 0 4px 20px rgba(15, 61, 52, 0.38), var(--shadow-md);
   transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .assistant-fab:hover {
   background: var(--color-accent-hover);
-  box-shadow: 0 6px 24px rgba(194, 86, 46, 0.45), var(--shadow-md);
+  box-shadow: 0 6px 24px rgba(15, 61, 52, 0.45), var(--shadow-md);
 }
 
 .assistant-fab:active {
@@ -1117,5 +1160,456 @@ button.secondary:hover:not(:disabled) {
   .assistant-fab {
     bottom: 1rem;
     right: 1rem;
+  }
+}
+
+/* ============================================================
+   Amber signal button — the "stamp" CTA. Ink text, never white.
+   ============================================================ */
+.btn-signal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0;
+  padding: 0.6rem 1.15rem;
+  border-radius: 999px;
+  border: none;
+  background: var(--signal);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.btn-signal:hover {
+  background: var(--signal-deep);
+  color: var(--color-ink);
+  text-decoration: none !important;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.15rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: transparent;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none !important;
+  cursor: pointer;
+}
+
+/* ============================================================
+   Work ticket — the signature object. A job rendered as a
+   punched dispatch ticket on the board.
+   ============================================================ */
+.ticket-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  gap: 1.1rem;
+}
+
+.ticket {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.5rem 1.25rem 1.15rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-ink);
+  text-decoration: none !important;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+/* Punched perforation strip along the top edge */
+.ticket::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 9px;
+  background:
+    radial-gradient(circle at 9px 0, transparent 0 4px, var(--color-board) 4px) repeat-x;
+  background-size: 18px 9px;
+  border-radius: 0;
+}
+
+@media (hover: hover) {
+  .ticket:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-border-strong);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticket {
+    transition: none;
+  }
+}
+
+.ticket-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ticket-tag {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  background: var(--tag);
+  padding: 0.18rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+/* The amber OPEN stamp, set slightly askew like a rubber stamp */
+.ticket-stamp {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--signal-deep);
+  border: 1.5px solid var(--signal);
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.4rem;
+  transform: rotate(-4deg);
+}
+
+.ticket-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+  color: var(--color-ink);
+}
+
+.ticket-meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin: 0.1rem 0 0;
+  padding: 0.7rem 0 0;
+  border-top: 1px dashed var(--color-border-strong);
+}
+
+.ticket-meta div {
+  min-width: 0;
+}
+
+.ticket-meta dt {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin: 0 0 0.15rem;
+}
+
+.ticket-meta dd {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticket-pay {
+  font-family: var(--font-mono);
+}
+
+.ticket-by {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+}
+
+.ticket-by a {
+  color: var(--color-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Empty state — an invitation, not a dead end */
+.board-empty {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.board-empty p {
+  color: var(--color-muted);
+  margin: 0 0 1.1rem;
+}
+
+/* ============================================================
+   Landing page — the board itself.
+   ============================================================ */
+.landing {
+  /* Full-bleed: escape the narrow content column for the hero */
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-top: -1.25rem;
+  overflow-x: clip;
+}
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-board);
+  color: #f1efe6;
+  padding: 4rem 1.5rem 4.25rem;
+}
+
+/* Faint pinboard grid behind the hero copy */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(241, 239, 230, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(241, 239, 230, 0.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: radial-gradient(ellipse 80% 90% at 30% 20%, #000 30%, transparent 75%);
+}
+
+.hero-inner {
+  position: relative;
+  max-width: 64rem;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+.hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--signal);
+  margin: 0 0 1.1rem;
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2.4rem, 6vw, 3.9rem);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  color: #fbfaf4;
+  margin: 0 0 1.1rem;
+  text-wrap: balance;
+}
+
+.hero h1 em {
+  font-style: normal;
+  color: var(--signal);
+}
+
+.hero-sub {
+  font-size: 1.1rem;
+  line-height: 1.5;
+  color: rgba(241, 239, 230, 0.82);
+  max-width: 34ch;
+  margin: 0 0 1.8rem;
+}
+
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.hero .btn-ghost {
+  color: #f1efe6;
+}
+
+.hero .btn-ghost:hover {
+  background: rgba(241, 239, 230, 0.1);
+  color: #fff;
+}
+
+.hero-foot {
+  margin: 1.5rem 0 0;
+  font-size: 0.85rem;
+  color: rgba(241, 239, 230, 0.6);
+}
+
+.hero-foot a {
+  color: rgba(241, 239, 230, 0.92);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* A single sample ticket pinned in the hero, tilted on the board */
+.hero-ticket {
+  position: relative;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  padding: 1.6rem 1.3rem 1.2rem;
+  box-shadow: var(--shadow-lg);
+  transform: rotate(2.5deg);
+}
+
+.hero-ticket::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 9px;
+  background: radial-gradient(circle at 9px 0, transparent 0 4px, var(--color-board) 4px) repeat-x;
+  background-size: 18px 9px;
+}
+
+/* The pin */
+.hero-ticket::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--signal);
+  box-shadow: 0 2px 5px rgba(8, 40, 35, 0.5), inset 0 2px 2px rgba(255, 255, 255, 0.5);
+  transform: translateX(-50%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-ticket {
+    animation: ticket-settle 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
+}
+
+@keyframes ticket-settle {
+  from {
+    opacity: 0;
+    transform: rotate(2.5deg) translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(2.5deg) translateY(0);
+  }
+}
+
+/* "How it works" — two sides of the board */
+.landing-body {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 1rem;
+}
+
+.how-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.how-col {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.5rem 1.6rem;
+}
+
+.how-col h3 {
+  font-size: 1.15rem;
+  margin: 0 0 1.1rem;
+}
+
+.how-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  counter-reset: step;
+}
+
+.how-steps li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.8rem;
+  align-items: baseline;
+}
+
+.how-steps li::before {
+  counter-increment: step;
+  content: counter(step, decimal-leading-zero);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--signal-deep);
+}
+
+.how-steps strong {
+  display: block;
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.how-steps span {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+/* Closing band */
+.landing-foot {
+  text-align: center;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 3.5rem;
+}
+
+.landing-foot h2 {
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  margin: 0 0 1.2rem;
+}
+
+@media (max-width: 720px) {
+  .hero-inner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .hero-ticket {
+    max-width: 22rem;
+  }
+
+  .how-grid {
+    grid-template-columns: 1fr;
   }
 }

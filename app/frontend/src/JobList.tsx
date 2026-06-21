@@ -29,27 +29,58 @@ export default function JobList() {
 
   if (authLoading) return <p className="state-loading">Loading…</p>;
   if (!auth) return <Navigate to="/login" replace />;
-  if (loading) return <p className="state-loading">Loading jobs…</p>;
-  if (error) return <p className="error">Error: {error}</p>;
+  if (loading) return <p className="state-loading">Loading the board…</p>;
+  if (error) return <p className="error">Couldn't load the board: {error}</p>;
+
+  const prettyCategory = (id: string) =>
+    id.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
     <>
-      <h1>Jobs</h1>
+      <header className="page-head">
+        <div>
+          <p className="eyebrow">On the board</p>
+          <h1>Open gigs</h1>
+        </div>
+        <Link to="/jobs/new" className="btn-signal">
+          Post a job
+        </Link>
+      </header>
       {jobs.length === 0 ? (
-        <p>No published jobs yet. <Link to="/jobs/new">Post one</Link>.</p>
+        <div className="board-empty">
+          <p>The board's empty right now. Be the first to pin a job.</p>
+          <Link to="/jobs/new" className="btn-signal">
+            Post the first job
+          </Link>
+        </div>
       ) : (
-        <ul className="job-list">
+        <ul className="ticket-grid">
           {jobs.map((job) => (
-            <li key={job.jobId} className="card job-card">
-              <Link to={`/jobs/${job.jobId}`} className="job-card-title">
-                {job.title}
+            <li key={job.jobId}>
+              <Link to={`/jobs/${job.jobId}`} className="ticket">
+                <div className="ticket-head">
+                  <span className="ticket-tag">{prettyCategory(job.categoryId)}</span>
+                  <span className="ticket-stamp">Open</span>
+                </div>
+                <h2 className="ticket-title">{job.title}</h2>
+                <dl className="ticket-meta">
+                  <div>
+                    <dt>Pay</dt>
+                    <dd className="ticket-pay">${(job.budget / 100).toFixed(0)}</dd>
+                  </div>
+                  <div>
+                    <dt>Where</dt>
+                    <dd>{job.location}</dd>
+                  </div>
+                  <div>
+                    <dt>When</dt>
+                    <dd className="mono">{job.scheduledAt.slice(0, 10)}</dd>
+                  </div>
+                </dl>
+                <p className="ticket-by">
+                  Posted by {users[job.clientId]?.name ?? users[job.clientId]?.email ?? 'a neighbor'}
+                </p>
               </Link>
-              <p className="job-card-meta">
-                {job.location} · ${(job.budget / 100).toFixed(2)} · {job.scheduledAt.slice(0, 10)}
-              </p>
-              <p className="job-card-byline">
-                Posted by <Link to={`/users/${job.clientId}`}>{users[job.clientId]?.name ?? users[job.clientId]?.email ?? job.clientId}</Link>
-              </p>
             </li>
           ))}
         </ul>
