@@ -112,7 +112,8 @@ Future splits (e.g. multiple Lambdas or services) can reintroduce a bus or direc
 
 ## Deployment
 
-- **Build**: `yarn workspace gig-api build:lambda` produces `app/api/build/package`.
+- **Build**: `yarn workspace gig-api build:lambda` type-checks with `tsc`, then bundles each Lambda entrypoint into a single ESM file with esbuild (`app/api/scripts/esbuild.mjs`) under `app/api/build/package`. `@aws-sdk/*` is marked **external** (provided by the `nodejs22.x` runtime) and not shipped; all other deps (e.g. `stripe`) are bundled in. Keeping the zip small reduces cold-start latency, so the package ships no `node_modules`.
+- **Lambda sizing**: both functions run at `memory_size = 512` (Lambda scales CPU with memory; the default 128 MB makes CPU-bound cold starts slow).
 - **Apply**: `yarn deploy` (or `terraform apply` under `infra/`) uploads the zip and updates AWS resources.
 - **Frontend env**: `scripts/update-frontend-env.sh` sets `VITE_API_URL` and `VITE_STRIPE_PUBLISHABLE_KEY` from Terraform outputs after every apply.
 

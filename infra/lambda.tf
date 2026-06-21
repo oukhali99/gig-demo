@@ -7,11 +7,14 @@ data "archive_file" "api" {
 }
 
 resource "aws_lambda_function" "api" {
-  function_name    = "${local.name_env}-api"
-  role             = aws_iam_role.api_lambda.arn
-  handler          = "handler.handler"
-  runtime          = "nodejs22.x"
-  timeout          = 30
+  function_name = "${local.name_env}-api"
+  role          = aws_iam_role.api_lambda.arn
+  handler       = "handler.handler"
+  runtime       = "nodejs22.x"
+  timeout       = 30
+  # Lambda allocates CPU proportional to memory; cold-start init is CPU-bound, so
+  # 512 MB cuts cold-start latency 2-4x vs the 128 MB default at ~neutral cost.
+  memory_size      = 512
   filename         = data.archive_file.api.output_path
   source_code_hash = data.archive_file.api.output_base64sha256
 
@@ -38,6 +41,7 @@ resource "aws_lambda_function" "image_moderation" {
   handler          = "image-moderation-handler.handler"
   runtime          = "nodejs22.x"
   timeout          = 60
+  memory_size      = 512
   filename         = data.archive_file.api.output_path
   source_code_hash = data.archive_file.api.output_base64sha256
 
