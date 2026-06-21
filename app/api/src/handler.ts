@@ -3,19 +3,18 @@ import { ensureLambdaConfigFromSsm } from './config/ssm.js';
 import { json } from './lib/api-helpers.js';
 
 export async function handler(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> {
-  // Overlap the (cold-path) SSM fetch with resolving the route's domain module so the
-  // network round-trip and module init run concurrently instead of serially.
-  const configReady = ensureLambdaConfigFromSsm();
+  // Must fully load SSM config into process.env BEFORE importing any domain module:
+  // modules (e.g. identity/cognito.ts) read process.env into module-scope constants at
+  // import time, so importing before config is loaded captures undefined values.
+  await ensureLambdaConfigFromSsm();
 
   const path = event.rawPath ?? '';
 
   const route = await resolveRoute(path);
   if (!route) {
-    await configReady;
     return json(404, { code: 'NOT_FOUND', message: 'Route not found' });
   }
 
-  await configReady;
   return route(event);
 }
 
