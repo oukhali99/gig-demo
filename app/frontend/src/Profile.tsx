@@ -126,8 +126,9 @@ export default function Profile() {
               maxLength={64}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your display name"
+              readOnly={!isOwner}
             />
-            <small>{name.length}/64</small>
+            {isOwner && <small>{name.length}/64</small>}
           </div>
 
           <div className="form-row">
@@ -138,10 +139,11 @@ export default function Profile() {
               value={bio}
               maxLength={512}
               onChange={(e) => setBio(e.target.value)}
-              placeholder="Tell others about your experience and what you offer"
+              placeholder={isOwner ? 'Tell others about your experience and what you offer' : 'This user has not added a bio.'}
               rows={6}
+              readOnly={!isOwner}
             />
-            <small>{bio.length}/512</small>
+            {isOwner && <small>{bio.length}/512</small>}
           </div>
 
           {error && <p className="error">Error: {error}</p>}
