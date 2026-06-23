@@ -22,4 +22,6 @@ phases:
     commands:
       - set -euo pipefail
       - cd "$CODEBUILD_SRC_DIR"
+      - yarn workspace gig-api test
+      - yarn workspace frontend test
       - yarn deploy:ci
